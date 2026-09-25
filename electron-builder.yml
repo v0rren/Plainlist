@@ -1,0 +1,36 @@
+appId: it.claudiovona.plainlist
+productName: Plainlist
+copyright: Copyright © 2026 Claudio Vona
+directories:
+  output: dist
+  buildResources: resources
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.map'
+  - '!node_modules/better-sqlite3/{deps,src,docs,benchmark}/**'
+  - '!node_modules/better-sqlite3/prebuilds/{darwin,linux}*'
+  - '!node_modules/better-sqlite3/prebuilds/win32-arm64.node'
+extraResources:
+  - from: resources/icon.ico
+    to: icon.ico
+asarUnpack:
+  - '**/*.node'
+npmRebuild: false
+electronDist: node_modules/electron/dist
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: resources/icon.ico
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: false
+  createStartMenuShortcut: true
+  shortcutName: Plainlist
+  artifactName: Plainlist-Setup-${version}.exe
+  uninstallDisplayName: Plainlist
+  deleteAppDataOnUninstall: false
+  runAfterFinish: true

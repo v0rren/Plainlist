@@ -1,0 +1,169 @@
+@import 'tailwindcss';
+
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #f1f2f5;
+  --surface-3: #e7e9ee;
+  --fg: #1b1d22;
+  --fg-muted: #5c626d;
+  --fg-subtle: #8b919c;
+  --line: #e4e6eb;
+  --line-strong: #d1d4db;
+  --accent: #2563eb;
+  --accent-soft: #e9f0ff;
+  --accent-fg: #ffffff;
+  --danger: #d92d20;
+  --danger-soft: #fdeceb;
+  --warning: #b54708;
+  --warning-soft: #fef4e6;
+  --success: #15803d;
+  --prio-high: #d92d20;
+  --prio-med: #d97706;
+  --prio-low: #7c8594;
+  --shadow: 0 8px 28px rgb(15 23 42 / 0.14), 0 2px 6px rgb(15 23 42 / 0.08);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15171c;
+    --surface: #1c1f26;
+    --surface-2: #242831;
+    --surface-3: #2e333e;
+    --fg: #e7e9ee;
+    --fg-muted: #a4aab6;
+    --fg-subtle: #737a88;
+    --line: #2a2e37;
+    --line-strong: #3a3f4b;
+    --accent: #6d9bff;
+    --accent-soft: #1e2a44;
+    --accent-fg: #0b1020;
+    --danger: #f97066;
+    --danger-soft: #3b1e1e;
+    --warning: #fdb022;
+    --warning-soft: #3a2c12;
+    --success: #4ade80;
+    --prio-high: #f97066;
+    --prio-med: #fdb022;
+    --prio-low: #8f97a6;
+    --shadow: 0 10px 30px rgb(0 0 0 / 0.45), 0 2px 8px rgb(0 0 0 / 0.3);
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-fg: var(--fg);
+  --color-muted: var(--fg-muted);
+  --color-subtle: var(--fg-subtle);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-fg: var(--accent-fg);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-success: var(--success);
+  --color-prio-high: var(--prio-high);
+  --color-prio-med: var(--prio-med);
+  --color-prio-low: var(--prio-low);
+  --shadow-pop: var(--shadow);
+  --font-sans: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable='true'] {
+  user-select: text;
+}
+
+::selection {
+  background: var(--accent-soft);
+}
+
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+
+@media (prefers-color-scheme: dark) {
+  input[type='date']::-webkit-calendar-picker-indicator,
+  input[type='time']::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+}
+
+@layer components {
+  .field {
+    @apply w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-fg outline-none placeholder:text-subtle focus:border-accent;
+  }
+  .btn {
+    @apply inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-3 py-1.5 text-sm font-medium text-fg hover:bg-surface-2 disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-fg hover:opacity-90 disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted hover:bg-surface-2 hover:text-fg;
+  }
+  .icon-btn {
+    @apply inline-flex h-7 w-7 items-center justify-center rounded-md text-muted hover:bg-surface-3 hover:text-fg;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted;
+  }
+  .section-label {
+    @apply px-3 pb-1 pt-4 text-[11px] font-semibold tracking-wide text-subtle uppercase;
+  }
+}
+
+body.quick {
+  background: transparent;
+  padding: 8px;
+}

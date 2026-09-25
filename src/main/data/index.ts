@@ -1,0 +1,6 @@
+export { openDatabase, migrate, schemaVersion, latestVersion, SchemaTooNewError, type DB, type OpenResult } from './db'
+export { TasksRepo, toFtsQuery, type CompletedQuery, type Facets } from './tasksRepo'
+export { AreasRepo, type AreaInput } from './areasRepo'
+export { SettingsRepo } from './settingsRepo'
+export { exportBackup, importBackup, validateBackup, type BackupFile } from './backup'
+export { ValidationError, NotFoundError } from './errors'
