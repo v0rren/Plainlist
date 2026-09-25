@@ -1,7 +1,28 @@
+import Database from 'better-sqlite3'
+import { existsSync } from 'node:fs'
 import { DEFAULT_SETTINGS, type Settings } from '../../shared/types'
 import type { DB } from './db'
 
 const KEYS = Object.keys(DEFAULT_SETTINGS) as Array<keyof Settings>
+
+/**
+ * Legge un'impostazione salvata senza aprire il database per l'app: serve prima di "ready",
+ * quando Chromium deve già sapere la lingua. `null` = nessun database (primo avvio).
+ */
+export function peekSetting<K extends keyof Settings>(file: string, key: K): Settings[K] | null {
+  if (!existsSync(file)) return null
+  try {
+    const db = new Database(file, { readonly: true, fileMustExist: true })
+    try {
+      const row = db.prepare('SELECT value_json FROM settings WHERE key = ?').get(key) as { value_json: string } | undefined
+      return row ? (JSON.parse(row.value_json) as Settings[K]) : DEFAULT_SETTINGS[key]
+    } finally {
+      db.close()
+    }
+  } catch {
+    return DEFAULT_SETTINGS[key]
+  }
+}
 
 export class SettingsRepo {
   constructor(private readonly db: DB) {}

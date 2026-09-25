@@ -7,6 +7,7 @@ import {
   type DragEndEvent,
   type DragStartEvent
 } from '@dnd-kit/core'
+import { t } from '@core/i18n'
 import { useEffect, useRef, useState } from 'react'
 import { DetailPanel } from './components/DetailPanel'
 import { NewTaskDialog } from './components/NewTaskDialog'
@@ -166,8 +167,9 @@ export function App() {
 
   const defaultAreaName = facets?.areas.find((a) => a.id === settings?.defaultAreaId)?.name ?? null
 
+  // Con la chiave sulla lingua, un cambio di lingua rimonta l'interfaccia con i testi nuovi.
   return (
-    <div className="flex h-full flex-col">
+    <div key={settings?.language} className="flex h-full flex-col">
       <header className="border-b border-line bg-surface px-4 py-3" data-tour="quick">
         <QuickInput
           ref={quickRef}
@@ -175,7 +177,7 @@ export function App() {
           knownPeople={facets?.people.map((p) => p.name) ?? []}
           defaultAreaName={defaultAreaName}
           onAdded={(task) =>
-            useStore.getState().toast({ kind: 'info', message: `Aggiunto: ${task.title}`, timeoutMs: 2500 })
+            useStore.getState().toast({ kind: 'info', message: t().app.added(task.title), timeoutMs: 2500 })
           }
         />
       </header>

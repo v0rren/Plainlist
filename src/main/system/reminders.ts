@@ -1,3 +1,4 @@
+import { t } from '../../core/i18n'
 import type { Summary } from '../../core/summary'
 import type { Task } from '../../core/types'
 import type { Settings } from '../../shared/types'
@@ -61,21 +62,21 @@ export class ReminderScheduler {
 }
 
 export function digestText(summary: Summary): { title: string; body: string } {
+  const m = t().system
   const { overdue, today } = summary.counts
   const parts: string[] = []
-  if (overdue) parts.push(`${overdue} ${overdue === 1 ? 'task scaduto' : 'task scaduti'}`)
-  if (today) parts.push(`${today} in scadenza oggi`)
-  const body = parts.length ? `${parts.join(' e ')}.` : 'Nessun task scaduto o in scadenza oggi.'
+  if (overdue) parts.push(m.digestOverdue(overdue))
+  if (today) parts.push(m.digestToday(today))
+  const body = parts.length ? `${parts.join(m.digestJoin)}.` : m.digestNothing
   const first = summary.suggestion?.first
   return {
-    title: parts.length ? 'Il punto di oggi' : 'Tutto in ordine',
-    body: first && parts.length ? `${body}\nInizia da: ${first.task.title}` : body
+    title: parts.length ? m.digestTitle : m.digestAllClear,
+    body: first && parts.length ? `${body}\n${m.digestStartWith(first.task.title)}` : body
   }
 }
 
 export function trayTooltip(summary: Summary): string {
   const { overdue, today } = summary.counts
   if (!overdue && !today) return 'Plainlist'
-  const parts = [overdue && `${overdue} scadut${overdue === 1 ? 'o' : 'i'}`, today && `${today} oggi`].filter(Boolean)
-  return `Plainlist · ${parts.join(', ')}`
+  return `Plainlist · ${t().system.trayCounts(overdue, today)}`
 }

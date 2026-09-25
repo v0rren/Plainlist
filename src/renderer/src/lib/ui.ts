@@ -1,3 +1,4 @@
+import { localeTag, t } from '@core/i18n'
 import { diffDays, formatDateShort, formatDue } from '@core/time'
 import type { Priority, Task } from '@shared/types'
 
@@ -7,10 +8,11 @@ export function cn(...classes: Array<string | false | null | undefined>): string
   return classes.filter(Boolean).join(' ')
 }
 
-export const PRIORITIES: Array<{ value: Priority; label: string; text: string; bg: string }> = [
-  { value: 3, label: 'Alta', text: 'text-prio-high', bg: 'bg-prio-high' },
-  { value: 2, label: 'Media', text: 'text-prio-med', bg: 'bg-prio-med' },
-  { value: 1, label: 'Bassa', text: 'text-prio-low', bg: 'bg-prio-low' }
+// `label` è un getter: segue la lingua corrente.
+export const PRIORITIES: Array<{ value: Priority; readonly label: string; text: string; bg: string }> = [
+  { value: 3, get label() { return t().priority.label[3] }, text: 'text-prio-high', bg: 'bg-prio-high' },
+  { value: 2, get label() { return t().priority.label[2] }, text: 'text-prio-med', bg: 'bg-prio-med' },
+  { value: 1, get label() { return t().priority.label[1] }, text: 'text-prio-low', bg: 'bg-prio-low' }
 ]
 
 export function priorityMeta(p: Priority): (typeof PRIORITIES)[number] {
@@ -50,7 +52,7 @@ export function isEditableTarget(target: EventTarget | null): boolean {
 }
 
 export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('it-IT', {
+  return new Date(iso).toLocaleString(localeTag(), {
     timeZone: 'Europe/Rome',
     day: 'numeric',
     month: 'short',

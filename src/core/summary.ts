@@ -1,7 +1,8 @@
 import { groupOf } from './grouping'
+import { t } from './i18n'
 import { byDueThenPriority, byPriorityThenDue } from './sorting'
 import { diffDays, formatDateLong, formatDue, todayKey, type DateKey } from './time'
-import { PRIORITY_LABEL, type Task } from './types'
+import type { Task } from './types'
 
 const DAY_MS = 86_400_000
 
@@ -92,15 +93,13 @@ export function suggestionOrder(open: Task[], today: DateKey): Task[] {
 }
 
 export function suggestionReason(task: Task, today: DateKey): string {
-  const priority = `priorità ${PRIORITY_LABEL[task.priority]}`
-  if (!task.dueDate) return `senza scadenza, ${priority}`
+  const m = t()
+  const priority = m.priority.named(m.priority.lower[task.priority])
+  if (!task.dueDate) return `${m.summary.noDue}, ${priority}`
   const delta = diffDays(task.dueDate, today)
-  if (delta < 0) {
-    const days = -delta
-    return `scaduto da ${days} ${days === 1 ? 'giorno' : 'giorni'}, ${priority}`
-  }
-  if (delta === 0) return `${task.dueTime ? `in scadenza oggi alle ${task.dueTime}` : 'in scadenza oggi'}, ${priority}`
-  return `scadenza ${formatDue(task.dueDate, task.dueTime, today)}, ${priority}`
+  if (delta < 0) return `${m.summary.overdueBy(-delta)}, ${priority}`
+  if (delta === 0) return `${task.dueTime ? m.summary.dueTodayAt(task.dueTime) : m.summary.dueToday}, ${priority}`
+  return `${m.summary.dueOn(formatDue(task.dueDate, task.dueTime, today))}, ${priority}`
 }
 
 function capitalize(text: string): string {

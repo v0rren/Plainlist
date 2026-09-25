@@ -1,8 +1,9 @@
 import { app, dialog, Menu, nativeTheme, powerMonitor, type BrowserWindow } from 'electron'
 import { join } from 'node:path'
+import { languageFromLocale, localeTag, setLanguage, t, type Language } from '../core/i18n'
 import type { EventMap } from '../shared/ipc'
 import type { Settings } from '../shared/types'
-import { openDatabase, type OpenResult } from './data'
+import { openDatabase, peekSetting, type OpenResult } from './data'
 import { broadcast, registerIpc } from './ipc/handlers'
 import { TaskService } from './services/taskService'
 import { applyAutostart, launchedHidden } from './system/autostart'
@@ -17,8 +18,36 @@ import { blockNetwork } from './windows/security'
 
 const APP_ID = 'it.claudiovona.plainlist'
 
-app.commandLine.appendSwitch('lang', 'it-IT')
+/** Lingua per il primo avvio: quella dell'interfaccia di Windows, se è italiano; altrimenti inglese. */
+function systemLanguage(): Language {
+  let preferred: string | undefined
+  try {
+    preferred = app.getPreferredSystemLanguages()[0]
+  } catch {
+    // Il formato regionale è solo un ripiego: può essere italiano anche con Windows in inglese.
+    preferred = Intl.DateTimeFormat().resolvedOptions().locale
+  }
+  return languageFromLocale(preferred)
+}
+
+// Chromium fissa la lingua dei campi data e ora all'avvio, prima di "ready": la si legge dal database.
+const startupLanguage = peekSetting(join(app.getPath('userData'), 'tasks.db'), 'language') ?? systemLanguage()
+setLanguage(startupLanguage)
+app.commandLine.appendSwitch('lang', localeTag(startupLanguage))
 app.setAppUserModelId(APP_ID)
+
+/** Primo avvio con un database nuovo: lingua di Windows e, in inglese, nomi inglesi per le aree di esempio. */
+function firstRun(service: TaskService): void {
+  const language = systemLanguage()
+  service.settings.set({ firstRunDone: true, language })
+  if (language === 'it') return
+  const names = t(language).system.defaultAreas
+  const italian = t('it').system.defaultAreas
+  for (const area of service.tasks.areas.list(true)) {
+    const i = italian.indexOf(area.name)
+    if (i >= 0) service.tasks.areas.upsert({ id: area.id, name: names[i] })
+  }
+}
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -61,6 +90,11 @@ if (!app.requestSingleInstanceLock()) {
 
   function applySettings(next: Settings, prev?: Settings): string | undefined {
     nativeTheme.themeSource = next.theme
+    if (!prev || prev.language !== next.language) {
+      setLanguage(next.language)
+      tray?.refresh()
+      refreshTray()
+    }
     if (!prev || prev.autostart !== next.autostart) applyAutostart(next.autostart)
     if (prev && prev.globalHotkey === next.globalHotkey) return undefined
     const error = hotkey.set(next.globalHotkey)
@@ -86,7 +120,7 @@ if (!app.requestSingleInstanceLock()) {
     if (!status?.lastError) return
     if (service.settings.getState('backup.errorNotifiedDate') === service.today()) return
     service.settings.setState('backup.errorNotifiedDate', service.today())
-    notify('Backup automatico non riuscito', status.lastError, () => showMainAnd('nav:show', { view: 'settings' }))
+    notify(t().system.backupFailedTitle, status.lastError, () => showMainAnd('nav:show', { view: 'settings' }))
   }
 
   function startBackgroundJobs(): void {
@@ -95,9 +129,9 @@ if (!app.requestSingleInstanceLock()) {
 
     const scheduler = new ReminderScheduler(service.tasks, () => service.settings.getAll(), {
       due: (task) =>
-        notify(`È l'ora: ${task.dueTime}`, taskBody(task), () => showMainAnd('nav:openTask', { id: task.id })),
+        notify(t().system.dueNow(task.dueTime!), taskBody(task), () => showMainAnd('nav:openTask', { id: task.id })),
       dueSoon: (task, minutes) =>
-        notify(`Tra ${minutes} minuti`, taskBody(task), () => showMainAnd('nav:openTask', { id: task.id }))
+        notify(t().system.dueIn(minutes), taskBody(task), () => showMainAnd('nav:openTask', { id: task.id }))
     })
     scheduler.catchUp()
     setInterval(() => scheduler.tick(), 30_000)
@@ -146,7 +180,7 @@ if (!app.requestSingleInstanceLock()) {
       opened = openDatabase(join(userData, 'tasks.db'), { backupDir: join(userData, 'backups') })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      dialog.showErrorBox('Plainlist non può aprire i dati', `${message}\n\nCartella dei dati: ${userData}`)
+      dialog.showErrorBox(t().system.cannotOpenData, `${message}\n\n${t().system.dataFolder(userData)}`)
       quitting = true
       app.quit()
       return
@@ -156,13 +190,17 @@ if (!app.requestSingleInstanceLock()) {
     service.tasks.purgeDeleted(30)
     backup = new AutoBackup(service, join(app.getPath('documents'), 'Plainlist Backup'))
 
-    if (!service.settings.getAll().firstRunDone) service.settings.set({ firstRunDone: true })
+    if (!service.settings.getAll().firstRunDone) firstRun(service)
 
     registerIpc({
       service,
       backup,
       applySettings,
       closeQuickAdd: () => quickAdd.hide(),
+      relaunch: () => {
+        app.relaunch()
+        app.quit()
+      },
       resizeQuickAdd: (height) => quickAdd.resize(height),
       onTasksChanged: () => refreshTray()
     })
@@ -179,7 +217,7 @@ if (!app.requestSingleInstanceLock()) {
       null
     )
     const hotkeyError = applySettings(service.settings.getAll())
-    if (hotkeyError) notify('Scorciatoia non disponibile', hotkeyError, () => showMainAnd('nav:show', { view: 'settings' }))
+    if (hotkeyError) notify(t().system.hotkeyUnavailableTitle, hotkeyError, () => showMainAnd('nav:show', { view: 'settings' }))
 
     const hidden = launchedHidden()
     mainWindow = openMainWindow(!hidden)

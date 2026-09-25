@@ -1,3 +1,5 @@
+import type { Language } from '../core/i18n'
+
 export type {
   Area,
   Priority,
@@ -11,6 +13,8 @@ export type {
   TaskPatch,
   TaskStatus
 } from '../core/types'
+
+export type { Language } from '../core/i18n'
 
 export type ThemeSetting = 'system' | 'light' | 'dark'
 
@@ -30,6 +34,8 @@ export interface AutoBackupSettings {
 }
 
 export interface Settings {
+  /** Lingua dell'interfaccia e dell'inserimento rapido. */
+  language: Language
   autostart: boolean
   theme: ThemeSetting
   globalHotkey: string
@@ -47,6 +53,8 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
+  // Chi aggiorna da una versione senza lingua resta in italiano; al primo avvio la sceglie il sistema.
+  language: 'it',
   autostart: true,
   theme: 'system',
   globalHotkey: 'Control+Alt+Space',

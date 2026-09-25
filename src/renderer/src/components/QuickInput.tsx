@@ -1,3 +1,4 @@
+import { getLanguage, t } from '@core/i18n'
 import { formatEstimate, parseQuickInput, type ParseResult } from '@core/parser'
 import { describeRecurrence } from '@core/recurrence'
 import { formatDateShort, todayKey } from '@core/time'
@@ -59,9 +60,10 @@ export const QuickInput = forwardRef<QuickInputHandle, Props>(function QuickInpu
     }
   }))
 
+  const language = getLanguage()
   const parsed = useMemo(
-    () => (text.trim() ? parseQuickInput(text, { now: new Date(), knownAreas, knownPeople }) : null),
-    [text, knownAreas, knownPeople]
+    () => (text.trim() ? parseQuickInput(text, { now: new Date(), knownAreas, knownPeople, language }) : null),
+    [text, knownAreas, knownPeople, language]
   )
 
   async function submit(): Promise<void> {
@@ -95,7 +97,7 @@ export const QuickInput = forwardRef<QuickInputHandle, Props>(function QuickInpu
           autoFocus={autoFocus}
           value={text}
           spellCheck={false}
-          placeholder="Cosa devi fare? es. Mandare preventivo @Marco venerdì alle 12 #lavoro !alta"
+          placeholder={t().quick.placeholder}
           className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-fg outline-none placeholder:text-subtle"
           onChange={(e) => {
             setText(e.target.value)
@@ -117,9 +119,9 @@ export const QuickInput = forwardRef<QuickInputHandle, Props>(function QuickInpu
             className="btn-ghost shrink-0 text-xs"
             disabled={!parsed.title || busy}
             onClick={() => void submit()}
-            title="Aggiungi (Invio)"
+            title={t().quick.addHint}
           >
-            <CornerDownLeft size={14} /> Aggiungi
+            <CornerDownLeft size={14} /> {t().common.add}
           </button>
         )}
       </div>
@@ -137,6 +139,7 @@ function ParsePreview({
   defaultAreaName: string | null
   error: string | null
 }) {
+  const m = t().quick
   const today = todayKey()
   const priority = parsed.priority ? priorityMeta(parsed.priority) : null
   const problems = parsed.spans.filter((s) => s.status !== 'ok')
@@ -148,7 +151,7 @@ function ParsePreview({
           {parsed.title}
         </span>
       ) : (
-        <span className="font-medium text-danger">Titolo mancante</span>
+        <span className="font-medium text-danger">{m.missingTitle}</span>
       )}
       {parsed.due && (
         <span className="inline-flex items-center gap-1 text-fg">
@@ -165,7 +168,7 @@ function ParsePreview({
       {parsed.start && (
         <span className="inline-flex items-center gap-1">
           <EyeOff size={13} />
-          visibile dal {formatDateShort(parsed.start, today)}
+          {m.visibleFrom(formatDateShort(parsed.start, today))}
         </span>
       )}
       {parsed.estimate && (
@@ -176,24 +179,24 @@ function ParsePreview({
       {parsed.waiting && (
         <span className="inline-flex items-center gap-1 text-warning">
           <Hourglass size={13} />
-          in attesa
+          {t().common.waiting}
         </span>
       )}
       <span className={cn('inline-flex items-center gap-1', priority ? priority.text : 'text-subtle')}>
         <Flag size={13} />
-        {priority ? priority.label : 'Media'}
+        {priority ? priority.label : priorityMeta(2).label}
       </span>
       {parsed.area ? (
         <span className="inline-flex items-center gap-0.5">
           <Hash size={13} />
           {parsed.area.name}
-          {parsed.area.isNew && <em className="ml-1 text-subtle not-italic">(nuova)</em>}
+          {parsed.area.isNew && <em className="ml-1 text-subtle not-italic">{m.isNew}</em>}
         </span>
       ) : (
         defaultAreaName && (
           <span className="inline-flex items-center gap-0.5 text-subtle">
             <Hash size={13} />
-            {defaultAreaName} (predefinita)
+            {defaultAreaName} {m.isDefault}
           </span>
         )
       )}
@@ -201,7 +204,7 @@ function ParsePreview({
         <span key={p.name} className="inline-flex items-center gap-0.5">
           <AtSign size={13} />
           {p.name}
-          {p.isNew && <em className="ml-1 text-subtle not-italic">(nuova)</em>}
+          {p.isNew && <em className="ml-1 text-subtle not-italic">{m.isNew}</em>}
         </span>
       ))}
       {parsed.tags.map((t) => (
@@ -221,11 +224,11 @@ function ParsePreview({
         >
           <AlertTriangle size={12} />
           <span className="font-medium">{s.text}</span>
-          {s.status === 'invalid' ? 'non riconosciuto, resta nel titolo' : 'ignorato, resta nel titolo'}
+          {s.status === 'invalid' ? m.notRecognised : m.ignored}
         </span>
       ))}
       {parsed.warnings
-        .filter((w) => w.startsWith('Data nel passato'))
+        .filter((w) => w.startsWith(t().parser.pastDate))
         .map((w) => (
           <span key={w} className="inline-flex items-center gap-1 rounded bg-warning-soft px-1.5 py-0.5 text-warning">
             <AlertTriangle size={12} />

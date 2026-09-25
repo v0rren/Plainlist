@@ -2,12 +2,13 @@ import { isValidDate, makeDateKey, parseDateKey } from '../../time'
 import { MONTHS, lookup } from '../lexicon'
 import { defineRule, wordAt, type RuleContext, type RuleMatch } from '../types'
 
-const SLASH_RE = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?$/
-const ISO_RE = /^(\d{4})-(\d{2})-(\d{2})$/
+export const SLASH_RE = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?$/
+export const ISO_RE = /^(\d{4})-(\d{2})-(\d{2})$/
 const DAY_RE = /^(\d{1,2})°?$/
 const YEAR_RE = /^\d{4}$/
 
-const INVALID = 'Data non valida'
+// Chiavi dei messaggi: il parser le traduce nella lingua dell'utente.
+const INVALID = 'invalidDate'
 
 /**
  * Senza anno: prossima occorrenza da oggi (incluso). Se nell'anno corrente è già passata
@@ -25,7 +26,7 @@ export function resolveDayMonth(
     if (!isValidDate(year, month, day)) return { length, status: 'invalid', message: INVALID }
     const value = makeDateKey(year, month, day)
     return value < ctx.today
-      ? { length, status: 'ok', value, warning: 'Data nel passato' }
+      ? { length, status: 'ok', value, warning: 'pastDate' }
       : { length, status: 'ok', value }
   }
   const current = parseDateKey(ctx.today).year

@@ -1,3 +1,4 @@
+import { t } from '@core/i18n'
 import { useState } from 'react'
 import { api, errorMessage } from '../lib/ui'
 import { useStore } from '../store'
@@ -41,16 +42,16 @@ export function NewTaskDialog() {
 
   return (
     <Modal
-      title="Nuovo task"
+      title={t().newTask.title}
       onClose={() => setOpen(false)}
       footer={
         <>
           {error && <span className="mr-auto self-center text-sm text-danger">{error}</span>}
           <button className="btn" onClick={() => setOpen(false)}>
-            Annulla
+            {t().common.cancel}
           </button>
-          <button className="btn-primary" disabled={!draft.title.trim() || busy} onClick={() => void save()} title="Ctrl+Invio">
-            Salva
+          <button className="btn-primary" disabled={!draft.title.trim() || busy} onClick={() => void save()} title={t().newTask.saveHint}>
+            {t().common.save}
           </button>
         </>
       }

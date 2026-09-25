@@ -1,3 +1,4 @@
+import { t } from '@core/i18n'
 import { X } from 'lucide-react'
 import { useEffect, type ReactNode } from 'react'
 
@@ -34,7 +35,7 @@ export function Modal({
       <div role="dialog" aria-label={title} className="flex max-h-[80vh] flex-col rounded-xl border border-line bg-surface shadow-pop" style={{ width }}>
         <div className="flex items-center border-b border-line px-4 py-3">
           <h2 className="flex-1 font-semibold">{title}</h2>
-          <button className="icon-btn" onClick={onClose} title="Chiudi (Esc)">
+          <button className="icon-btn" onClick={onClose} title={t().common.closeEsc}>
             <X size={16} />
           </button>
         </div>
@@ -68,7 +69,7 @@ export function ConfirmDialog({
       footer={
         <>
           <button className="btn" onClick={onCancel}>
-            Annulla
+            {t().common.cancel}
           </button>
           <button
             autoFocus

@@ -1,3 +1,4 @@
+import { t } from '@core/i18n'
 import { AlertCircle, CheckCircle2, Undo2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { cn } from '../lib/ui'
@@ -37,7 +38,7 @@ function ToastItem({ toast }: { toast: Toast }) {
           {toast.kind === 'undo' && <span className="ml-1 text-xs text-subtle">{left}s</span>}
         </button>
       )}
-      <button className="shrink-0 text-subtle hover:text-fg" onClick={() => dismiss(toast.id)} title="Chiudi">
+      <button className="shrink-0 text-subtle hover:text-fg" onClick={() => dismiss(toast.id)} title={t().common.close}>
         <X size={14} />
       </button>
     </div>

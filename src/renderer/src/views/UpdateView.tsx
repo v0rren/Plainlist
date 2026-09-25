@@ -1,3 +1,4 @@
+import { t } from '@core/i18n'
 import { formatEstimate } from '@core/parser'
 import type { Summary } from '@core/summary'
 import { summaryToText } from '@core/text'
@@ -29,8 +30,8 @@ function Line({ task, today, extra }: { task: Task; today: string; extra?: React
       onClick={() => select(task.id, true)}
       className={cn('flex items-center gap-3 rounded-md px-2 py-1.5', selected ? 'bg-accent-soft' : 'hover:bg-surface-2')}
     >
-      <Checkbox checked={false} onChange={() => void taskActions.complete(task.id, true)} label="Completa" />
-      <span className={cn('h-2 w-2 shrink-0 rounded-full', prio.bg)} title={`Priorità ${prio.label.toLowerCase()}`} />
+      <Checkbox checked={false} onChange={() => void taskActions.complete(task.id, true)} label={t().common.complete} />
+      <span className={cn('h-2 w-2 shrink-0 rounded-full', prio.bg)} title={t().priority.filter(prio.label.toLowerCase())} />
       <span className="min-w-0 flex-1 truncate">{task.title}</span>
       {task.people.length > 0 && <span className="text-xs text-muted">@{task.people.join(', @')}</span>}
       {task.areaName && <span className="text-xs text-subtle">#{task.areaName}</span>}
@@ -85,7 +86,8 @@ export function UpdateView() {
   const empty = counts.open === 0
   const areaName = facets?.areas.find((a) => a.id === areaId)?.name
   const filters = [areaName && `#${areaName}`, person && `@${person}`].filter(Boolean) as string[]
-  const est = summary.todayEstimate.minutes ? ` · ~${formatEstimate(summary.todayEstimate.minutes)} stimati` : ''
+  const m = t().update
+  const est = summary.todayEstimate.minutes ? m.estimated(formatEstimate(summary.todayEstimate.minutes)) : ''
 
   return (
     <div className="max-w-4xl space-y-4 px-6 py-5">
@@ -99,7 +101,7 @@ export function UpdateView() {
             onChange={(e) => setAreaId(e.target.value ? Number(e.target.value) : undefined)}
             className="field w-auto py-1 text-sm"
           >
-            <option value="">Tutte le aree</option>
+            <option value="">{m.allAreas}</option>
             {facets?.areas.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -111,7 +113,7 @@ export function UpdateView() {
             onChange={(e) => setPerson(e.target.value || undefined)}
             className="field w-auto py-1 text-sm"
           >
-            <option value="">Tutte le persone</option>
+            <option value="">{m.allPeople}</option>
             {facets?.people.map((p) => (
               <option key={p.name} value={p.name}>
                 {p.name}
@@ -120,38 +122,38 @@ export function UpdateView() {
           </select>
           <button
             className="btn py-1"
-            onClick={() => void copyText(summaryToText(summary, filters), 'Update copiato negli appunti')}
-            title="Copia il riepilogo come testo, da incollare in Teams o in una mail"
+            onClick={() => void copyText(summaryToText(summary, filters), m.copied)}
+            title={m.copyHint}
           >
-            <Copy size={14} /> Copia
+            <Copy size={14} /> {m.copy}
           </button>
         </div>
       </div>
 
       <p className="text-sm text-muted">
         {empty
-          ? 'Nessun task aperto. Ottimo lavoro.'
-          : `${counts.overdue} ${counts.overdue === 1 ? 'scaduto' : 'scaduti'} · ${counts.today} per oggi · ${counts.upcoming} nei prossimi giorni · ${counts.noDue} senza scadenza · ${counts.waiting} in attesa · ${counts.stale} ${counts.stale === 1 ? 'fermo' : 'fermi'}`}
+          ? m.empty
+          : m.counts(counts)}
       </p>
 
       {summary.overdue.length > 0 && (
-        <Section icon={AlertTriangle} title={`${summary.overdue.length} ${summary.overdue.length === 1 ? 'scaduto' : 'scaduti'}`} tone="text-danger">
+        <Section icon={AlertTriangle} title={m.overdue(summary.overdue.length)} tone="text-danger">
           {summary.overdue.map((t) => (
             <Line key={t.id} task={t} today={today} />
           ))}
         </Section>
       )}
 
-      <Section icon={CalendarCheck} title={`Oggi${est}`} tone="text-accent">
+      <Section icon={CalendarCheck} title={`${m.today}${est}`} tone="text-accent">
         {summary.dueToday.length === 0 ? (
-          <p className="px-2 text-sm text-subtle">Niente in scadenza oggi.</p>
+          <p className="px-2 text-sm text-subtle">{m.nothingToday}</p>
         ) : (
           summary.dueToday.map((t) => <Line key={t.id} task={t} today={today} />)
         )}
       </Section>
 
       {summary.upcoming.length > 0 && (
-        <Section icon={CalendarRange} title="Prossimi 7 giorni">
+        <Section icon={CalendarRange} title={m.upcoming}>
           <div className="space-y-3">
             {summary.upcoming.map((day) => (
               <div key={day.date}>
@@ -166,7 +168,7 @@ export function UpdateView() {
       )}
 
       {summary.noDue.length > 0 && (
-        <Section icon={Inbox} title="Senza scadenza">
+        <Section icon={Inbox} title={m.noDue}>
           {summary.noDue.map((t) => (
             <Line key={t.id} task={t} today={today} />
           ))}
@@ -174,7 +176,7 @@ export function UpdateView() {
       )}
 
       {summary.waiting.length > 0 && (
-        <Section icon={Hourglass} title="In attesa di altri" tone="text-warning">
+        <Section icon={Hourglass} title={m.waiting} tone="text-warning">
           {summary.waiting.map((t) => (
             <Line key={t.id} task={t} today={today} />
           ))}
@@ -182,13 +184,13 @@ export function UpdateView() {
       )}
 
       {summary.stale.length > 0 && (
-        <Section icon={Timer} title={`Fermi da più di ${staleDays} giorni`} tone="text-warning">
+        <Section icon={Timer} title={m.stale(staleDays)} tone="text-warning">
           {summary.stale.map((t) => (
             <Line
               key={t.id}
               task={t}
               today={today}
-              extra={<span className="w-28 text-right text-xs text-subtle">fermo da {daysSince(t.lastActivityAt)} giorni</span>}
+              extra={<span className="w-28 text-right text-xs text-subtle">{m.staleFor(daysSince(t.lastActivityAt))}</span>}
             />
           ))}
         </Section>
@@ -197,7 +199,7 @@ export function UpdateView() {
       {summary.suggestion && (
         <section className="rounded-lg border border-accent/30 bg-accent-soft p-4">
           <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-accent">
-            <Lightbulb size={16} /> Da dove iniziare
+            <Lightbulb size={16} /> {m.startWith}
           </h2>
           <p>
             <strong>{summary.suggestion.first.task.title}</strong>{' '}
@@ -205,7 +207,7 @@ export function UpdateView() {
           </p>
           {summary.suggestion.next.length > 0 && (
             <p className="mt-1 text-sm text-muted">
-              Poi: {summary.suggestion.next.map((n) => n.task.title).join(', ')}.
+              {m.then(summary.suggestion.next.map((n) => n.task.title).join(', '))}
             </p>
           )}
         </section>

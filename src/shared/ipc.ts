@@ -113,6 +113,7 @@ export interface InvokeMap {
   'backup:runNow': { req: void; res: BackupStatus }
   'backup:chooseFolder': { req: void; res: BackupStatus | Cancelled }
   'backup:openFolder': { req: void; res: void }
+  'app:relaunch': { req: void; res: void }
   'quick:close': { req: void; res: void }
   'quick:resize': { req: { height: number }; res: void }
 }
@@ -163,6 +164,7 @@ export const INVOKE_CHANNELS = [
   'backup:runNow',
   'backup:chooseFolder',
   'backup:openFolder',
+  'app:relaunch',
   'quick:close',
   'quick:resize'
 ] as const satisfies readonly InvokeChannel[]

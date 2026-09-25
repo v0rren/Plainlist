@@ -1,5 +1,6 @@
 import { mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { t } from '../../core/i18n'
 import type { BackupStatus } from '../../shared/ipc'
 import { exportBackup } from '../data'
 import type { TaskService } from '../services/taskService'
@@ -58,7 +59,7 @@ export class AutoBackup {
       s.setState('backup.lastDate', this.service.today())
       s.setState('backup.lastError', null)
     } catch (err) {
-      s.setState('backup.lastError', `Backup non riuscito in ${folder}: ${err instanceof Error ? err.message : String(err)}`)
+      s.setState('backup.lastError', t().errors.backupFailed(folder, err instanceof Error ? err.message : String(err)))
     }
     return this.status()
   }

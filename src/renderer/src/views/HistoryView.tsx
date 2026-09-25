@@ -1,3 +1,4 @@
+import { localeTag, t } from '@core/i18n'
 import { formatDateLong, todayKey } from '@core/time'
 import type { Task } from '@shared/types'
 import { Search } from 'lucide-react'
@@ -40,6 +41,8 @@ export function HistoryView() {
     }
   }, [load])
 
+  const m = t().history
+  const reopen = t().common.reopen
   const today = todayKey()
   const days: Array<[string, Task[]]> = []
   for (const t of items) {
@@ -52,7 +55,7 @@ export function HistoryView() {
   return (
     <div className="max-w-4xl px-6 py-5">
       <div className="mb-4 flex items-center gap-3">
-        <h1 className="text-xl font-semibold">Completati</h1>
+        <h1 className="text-xl font-semibold">{m.title}</h1>
         <span className="text-sm text-muted">{total}</span>
         <div className="ml-auto flex h-8 w-64 items-center gap-2 rounded-md border border-line bg-surface px-2 focus-within:border-accent">
           <Search size={14} className="text-subtle" />
@@ -63,19 +66,19 @@ export function HistoryView() {
               setLimit(PAGE)
             }}
             id="history-search"
-            placeholder="Cerca nei completati"
+            placeholder={m.search}
             className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-subtle"
           />
         </div>
       </div>
 
-      {days.length === 0 && <p className="mt-10 text-center text-muted">Nessun task completato{search && ' trovato'}.</p>}
+      {days.length === 0 && <p className="mt-10 text-center text-muted">{search ? m.emptySearch : m.empty}</p>}
 
       <div className="space-y-4">
         {days.map(([day, tasks]) => (
           <section key={day}>
             <h2 className="mb-1 px-2 text-xs font-semibold tracking-wide text-muted uppercase">
-              {day === today ? 'Oggi' : formatDateLong(day, today)}
+              {day === today ? t().common.today : formatDateLong(day, today)}
             </h2>
             {tasks.map((t) => (
               <div
@@ -86,11 +89,11 @@ export function HistoryView() {
                   selectedId === t.id ? 'bg-accent-soft' : 'hover:bg-surface-2'
                 )}
               >
-                <Checkbox checked onChange={() => void taskActions.complete(t.id, false)} label="Riapri" />
+                <Checkbox checked onChange={() => void taskActions.complete(t.id, false)} label={reopen} />
                 <span className="min-w-0 flex-1 truncate text-muted">{t.title}</span>
                 {t.areaName && <span className="text-xs text-subtle">#{t.areaName}</span>}
                 <span className="text-xs text-subtle">
-                  {new Date(t.completedAt!).toLocaleTimeString('it-IT', { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' })}
+                  {new Date(t.completedAt!).toLocaleTimeString(localeTag(), { timeZone: 'Europe/Rome', hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
             ))}
@@ -101,7 +104,7 @@ export function HistoryView() {
       {items.length < total && (
         <div className="mt-4 text-center">
           <button className="btn" onClick={() => setLimit(limit + PAGE)}>
-            Mostra altri
+            {m.showMore}
           </button>
         </div>
       )}

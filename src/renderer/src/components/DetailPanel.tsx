@@ -1,20 +1,11 @@
-import type { TaskDetail, TaskEvent, TaskPatch } from '@shared/types'
+import { t } from '@core/i18n'
+import type { TaskDetail, TaskPatch } from '@shared/types'
 import { Sun, Trash2, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, cn, errorMessage, formatDateTime } from '../lib/ui'
 import { taskActions, useStore } from '../store'
 import { TaskFields, type TaskDraft } from './TaskFields'
 import { Checkbox } from './TaskRow'
-
-const EVENT_LABEL: Record<TaskEvent['type'], string> = {
-  created: 'Creato',
-  updated: 'Modificato',
-  completed: 'Completato',
-  reopened: 'Riaperto',
-  rescheduled: 'Scadenza cambiata',
-  deleted: 'Eliminato',
-  restored: 'Ripristinato'
-}
 
 function toDraft(t: TaskDetail): TaskDraft {
   return {
@@ -89,6 +80,7 @@ export function DetailPanel({ id }: { id: number }) {
   }
 
   const textFields = new Set(['title', 'notes'])
+  const m = t()
 
   return (
     <aside data-detail className="flex w-[380px] shrink-0 flex-col border-l border-line bg-surface">
@@ -96,22 +88,22 @@ export function DetailPanel({ id }: { id: number }) {
         <Checkbox
           checked={task.status === 'done'}
           onChange={(v) => void taskActions.complete(task.id, v)}
-          label="Completato"
+          label={m.common.completed}
         />
-        <span className="flex-1 text-sm text-muted">{task.status === 'done' ? 'Completato' : 'Da fare'}</span>
+        <span className="flex-1 text-sm text-muted">{task.status === 'done' ? m.common.completed : m.detail.todo}</span>
         {task.status === 'open' && (
           <button
             className={cn('icon-btn', task.myDayDate === today && 'text-warning hover:text-warning')}
-            title={task.myDayDate === today ? 'Togli da Il mio giorno' : 'Aggiungi a Il mio giorno'}
+            title={task.myDayDate === today ? m.common.removeFromMyDay : m.common.addToMyDay}
             onClick={() => void taskActions.setMyDay(task.id, task.myDayDate !== today)}
           >
             <Sun size={16} />
           </button>
         )}
-        <button className="icon-btn hover:text-danger" title="Elimina" onClick={() => void taskActions.remove(task)}>
+        <button className="icon-btn hover:text-danger" title={m.common.delete} onClick={() => void taskActions.remove(task)}>
           <Trash2 size={16} />
         </button>
-        <button className="icon-btn" title="Chiudi (Esc)" onClick={closeDetail}>
+        <button className="icon-btn" title={m.common.closeEsc} onClick={closeDetail}>
           <X size={16} />
         </button>
       </div>
@@ -138,23 +130,23 @@ export function DetailPanel({ id }: { id: number }) {
 
         {task.sourceText && (
           <div className="mt-5 rounded-md bg-surface-2 px-3 py-2 text-xs text-muted">
-            <div className="mb-0.5 font-medium">Inserito come</div>
+            <div className="mb-0.5 font-medium">{m.detail.enteredAs}</div>
             <code className="break-words whitespace-pre-wrap">{task.sourceText}</code>
           </div>
         )}
 
         <div className="mt-5">
-          <div className="mb-1.5 text-xs font-semibold tracking-wide text-subtle uppercase">Storico</div>
+          <div className="mb-1.5 text-xs font-semibold tracking-wide text-subtle uppercase">{m.detail.history}</div>
           <ol className="space-y-1 text-xs text-muted">
             {[...task.events].reverse().map((e) => (
               <li key={e.id} className="flex gap-2">
                 <span className="w-24 shrink-0 text-subtle">{formatDateTime(e.at)}</span>
                 <span>
-                  {EVENT_LABEL[e.type]}
+                  {m.detail.events[e.type]}
                   {e.type === 'rescheduled' && e.payload && (
                     <span className="text-subtle">
                       {' '}
-                      · {String(e.payload.from ?? 'nessuna')} → {String(e.payload.to ?? 'nessuna')}
+                      · {String(e.payload.from ?? m.detail.noDate)} → {String(e.payload.to ?? m.detail.noDate)}
                     </span>
                   )}
                 </span>
@@ -162,7 +154,7 @@ export function DetailPanel({ id }: { id: number }) {
             ))}
           </ol>
           {task.completedAt && (
-            <div className="mt-2 text-xs text-success">Completato il {formatDateTime(task.completedAt)}</div>
+            <div className="mt-2 text-xs text-success">{m.detail.completedOn(formatDateTime(task.completedAt))}</div>
           )}
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { Menu, Tray, nativeImage } from 'electron'
+import { t } from '../../core/i18n'
 import { appIconPath } from '../windows/mainWindow'
 
 export interface TrayActions {
@@ -12,6 +13,7 @@ export interface TrayActions {
 
 export class AppTray {
   private tray: Tray
+  private hotkey: string | null = null
 
   constructor(
     private readonly actions: TrayActions,
@@ -25,20 +27,27 @@ export class AppTray {
   }
 
   setHotkey(hotkey: string | null): void {
-    this.tray.setContextMenu(this.menu(hotkey))
+    this.hotkey = hotkey
+    this.tray.setContextMenu(this.menu())
   }
 
-  private menu(hotkey: string | null): Menu {
+  /** Ricostruisce il menu, per esempio dopo un cambio di lingua. */
+  refresh(): void {
+    this.tray.setContextMenu(this.menu())
+  }
+
+  private menu(): Menu {
     const a = this.actions
+    const m = t().system
     return Menu.buildFromTemplate([
-      { label: 'Apri Plainlist', click: () => a.open() },
-      { label: 'Il mio giorno', click: () => a.myDay() },
-      { label: 'Aggiunta rapida', accelerator: hotkey ?? undefined, registerAccelerator: false, click: () => a.quickAdd() },
-      { label: 'Update di oggi', click: () => a.update() },
+      { label: m.trayOpen, click: () => a.open() },
+      { label: m.trayMyDay, click: () => a.myDay() },
+      { label: m.trayQuickAdd, accelerator: this.hotkey ?? undefined, registerAccelerator: false, click: () => a.quickAdd() },
+      { label: m.trayUpdate, click: () => a.update() },
       { type: 'separator' },
-      { label: 'Impostazioni', click: () => a.settings() },
+      { label: m.traySettings, click: () => a.settings() },
       { type: 'separator' },
-      { label: 'Esci', click: () => a.quit() }
+      { label: m.trayQuit, click: () => a.quit() }
     ])
   }
 

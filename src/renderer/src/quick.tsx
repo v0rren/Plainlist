@@ -1,3 +1,4 @@
+import { setLanguage, t } from '@core/i18n'
 import type { FacetsResponse } from '@shared/ipc'
 import type { Settings } from '@shared/types'
 import { StrictMode, useEffect, useLayoutEffect, useRef, useState } from 'react'
@@ -15,6 +16,13 @@ function QuickAddWindow() {
   const load = async (): Promise<void> => {
     const [f, s] = await Promise.all([api.invoke('meta:facets'), api.invoke('settings:get')])
     setFacets(f)
+    applySettings(s)
+  }
+
+  function applySettings(s: Settings): void {
+    setLanguage(s.language)
+    document.documentElement.lang = s.language
+    document.title = t().system.quickAddTitle
     setSettings(s)
   }
 
@@ -25,7 +33,7 @@ function QuickAddWindow() {
         void load()
         inputRef.current?.focus()
       }),
-      window.api.on('settings:changed', setSettings)
+      window.api.on('settings:changed', applySettings)
     ]
     return () => offs.forEach((off) => off())
   }, [])

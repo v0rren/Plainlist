@@ -1,3 +1,4 @@
+import { t } from '../../core/i18n'
 import { fromRRule, normalizeRecurrence, toRRule, type Recurrence } from '../../core/recurrence'
 import { isValidDateKey, isValidTimeKey, toDueAt } from '../../core/time'
 import type { Priority } from '../../core/types'
@@ -121,7 +122,7 @@ export function exportBackup(db: DB, now: Date = new Date()): BackupFile {
 }
 
 function fail(message: string): never {
-  throw new ValidationError(`File di backup non valido: ${message}`)
+  throw new ValidationError(t().backupFile.invalid(message))
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -130,52 +131,53 @@ const isOptString = (v: unknown): v is string | null => v === null || typeof v =
 const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === 'string')
 
 export function validateBackup(data: unknown): BackupFile {
-  if (!isObject(data)) fail('non è un oggetto JSON')
-  if (data.format !== BACKUP_FORMAT) fail('formato sconosciuto')
-  if (!SUPPORTED_VERSIONS.includes(data.version as number)) fail(`versione ${String(data.version)} non supportata`)
-  if (!Array.isArray(data.areas) || !Array.isArray(data.tasks)) fail('mancano aree o task')
+  const m = t().backupFile
+  if (!isObject(data)) fail(m.notObject)
+  if (data.format !== BACKUP_FORMAT) fail(m.unknownFormat)
+  if (!SUPPORTED_VERSIONS.includes(data.version as number)) fail(m.unsupportedVersion(String(data.version)))
+  if (!Array.isArray(data.areas) || !Array.isArray(data.tasks)) fail(m.missingAreasOrTasks)
 
   const areaIds = new Set<number>()
   for (const a of data.areas as unknown[]) {
-    if (!isObject(a) || !Number.isInteger(a.id) || typeof a.name !== 'string' || !a.name.trim()) fail('area non valida')
-    if (areaIds.has(a.id as number)) fail(`area duplicata ${String(a.id)}`)
+    if (!isObject(a) || !Number.isInteger(a.id) || typeof a.name !== 'string' || !a.name.trim()) fail(m.invalidArea)
+    if (areaIds.has(a.id as number)) fail(m.duplicateArea(String(a.id)))
     areaIds.add(a.id as number)
   }
 
   const taskIds = new Set<number>()
   for (const t of data.tasks as unknown[]) {
-    if (!isObject(t) || !Number.isInteger(t.id)) fail('task senza id')
-    const where = `task ${String(t.id)}`
-    if (taskIds.has(t.id as number)) fail(`${where} duplicato`)
+    if (!isObject(t) || !Number.isInteger(t.id)) fail(m.taskWithoutId)
+    const where = m.task(String(t.id))
+    if (taskIds.has(t.id as number)) fail(`${where} ${m.duplicate}`)
     taskIds.add(t.id as number)
-    if (typeof t.title !== 'string' || !t.title.trim()) fail(`${where}: titolo mancante`)
-    if (t.status !== 'open' && t.status !== 'done') fail(`${where}: stato non valido`)
-    if (t.priority !== 1 && t.priority !== 2 && t.priority !== 3) fail(`${where}: priorità non valida`)
-    if (t.areaId !== null && !areaIds.has(t.areaId as number)) fail(`${where}: area inesistente`)
-    if (t.dueDate !== null && !isValidDateKey(t.dueDate)) fail(`${where}: data non valida`)
-    if (t.dueTime !== null && (!isValidTimeKey(t.dueTime) || t.dueDate === null)) fail(`${where}: orario non valido`)
-    if (!isIso(t.createdAt) || !isIso(t.updatedAt) || !isIso(t.lastActivityAt)) fail(`${where}: date di sistema non valide`)
-    if (t.completedAt !== null && !isIso(t.completedAt)) fail(`${where}: data di completamento non valida`)
-    if (!isOptString(t.notes) || !isOptString(t.sourceText)) fail(`${where}: campi di testo non validi`)
-    if (!isStringArray(t.people) || !isStringArray(t.tags)) fail(`${where}: persone o tag non validi`)
-    if (!Array.isArray(t.events)) fail(`${where}: storico non valido`)
-    if (t.startDate != null && !isValidDateKey(t.startDate)) fail(`${where}: data di inizio non valida`)
-    if (t.myDayDate != null && !isValidDateKey(t.myDayDate)) fail(`${where}: data "Il mio giorno" non valida`)
+    if (typeof t.title !== 'string' || !t.title.trim()) fail(`${where}: ${m.missingTitle}`)
+    if (t.status !== 'open' && t.status !== 'done') fail(`${where}: ${m.invalidStatus}`)
+    if (t.priority !== 1 && t.priority !== 2 && t.priority !== 3) fail(`${where}: ${m.invalidPriority}`)
+    if (t.areaId !== null && !areaIds.has(t.areaId as number)) fail(`${where}: ${m.missingArea}`)
+    if (t.dueDate !== null && !isValidDateKey(t.dueDate)) fail(`${where}: ${m.invalidDate}`)
+    if (t.dueTime !== null && (!isValidTimeKey(t.dueTime) || t.dueDate === null)) fail(`${where}: ${m.invalidTime}`)
+    if (!isIso(t.createdAt) || !isIso(t.updatedAt) || !isIso(t.lastActivityAt)) fail(`${where}: ${m.invalidSystemDates}`)
+    if (t.completedAt !== null && !isIso(t.completedAt)) fail(`${where}: ${m.invalidCompletedAt}`)
+    if (!isOptString(t.notes) || !isOptString(t.sourceText)) fail(`${where}: ${m.invalidText}`)
+    if (!isStringArray(t.people) || !isStringArray(t.tags)) fail(`${where}: ${m.invalidPeopleOrTags}`)
+    if (!Array.isArray(t.events)) fail(`${where}: ${m.invalidHistory}`)
+    if (t.startDate != null && !isValidDateKey(t.startDate)) fail(`${where}: ${m.invalidStartDate}`)
+    if (t.myDayDate != null && !isValidDateKey(t.myDayDate)) fail(`${where}: ${m.invalidMyDay}`)
     if (t.estimateMin != null && (!Number.isInteger(t.estimateMin) || (t.estimateMin as number) < 1)) {
-      fail(`${where}: stima non valida`)
+      fail(`${where}: ${m.invalidEstimate}`)
     }
     if (t.recurrence != null) {
       const r = t.recurrence as Record<string, unknown>
       if (!isObject(r) || !['daily', 'weekly', 'monthly', 'yearly'].includes(r.freq as string)) {
-        fail(`${where}: ripetizione non valida`)
+        fail(`${where}: ${m.invalidRecurrence}`)
       }
-      if (t.dueDate === null) fail(`${where}: un task ricorrente deve avere una scadenza`)
+      if (t.dueDate === null) fail(`${where}: ${m.recurringNeedsDue}`)
     }
   }
   for (const t of data.tasks as BackupTask[]) {
-    if (t.parentId !== null && !taskIds.has(t.parentId)) fail(`task ${t.id}: task padre inesistente`)
+    if (t.parentId !== null && !taskIds.has(t.parentId)) fail(`${m.task(String(t.id))}: ${m.missingParent}`)
   }
-  if (data.settings !== undefined && !isObject(data.settings)) fail('impostazioni non valide')
+  if (data.settings !== undefined && !isObject(data.settings)) fail(m.invalidSettings)
   return data as unknown as BackupFile
 }
 

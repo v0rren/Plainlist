@@ -9,6 +9,7 @@ import type {
   InvokeRes,
   Wire
 } from '../../shared/ipc'
+import { t } from '../../core/i18n'
 import type { Settings } from '../../shared/types'
 import { ValidationError, exportBackup, importBackup } from '../data'
 import type { TaskService } from '../services/taskService'
@@ -25,6 +26,8 @@ export interface IpcDeps {
   /** Applica gli effetti delle impostazioni (tema, avvio automatico, scorciatoia). Restituisce un errore da mostrare. */
   applySettings(next: Settings, prev: Settings): string | undefined
   closeQuickAdd(): void
+  /** Riavvia l'app (serve dopo il cambio di lingua per i campi data di Chromium). */
+  relaunch(): void
   resizeQuickAdd(height: number): void
   onTasksChanged(): void
 }
@@ -106,9 +109,9 @@ export function registerIpc(deps: IpcDeps): void {
     'data:export': async (_req, sender) => {
       const win = BrowserWindow.fromWebContents(sender)
       const options = {
-        title: 'Esporta i dati',
+        title: t().system.exportTitle,
         defaultPath: join(app.getPath('documents'), `plainlist-backup-${service.today()}.json`),
-        filters: [{ name: 'Backup Plainlist', extensions: ['json'] }]
+        filters: [{ name: t().system.backupFilter, extensions: ['json'] }]
       }
       const res = win ? await dialog.showSaveDialog(win, options) : await dialog.showSaveDialog(options)
       if (res.canceled || !res.filePath) return { cancelled: true }
@@ -118,9 +121,9 @@ export function registerIpc(deps: IpcDeps): void {
     'data:import': async (_req, sender) => {
       const win = BrowserWindow.fromWebContents(sender)
       const options = {
-        title: 'Importa i dati',
+        title: t().system.importTitle,
         properties: ['openFile' as const],
-        filters: [{ name: 'Backup Plainlist', extensions: ['json'] }]
+        filters: [{ name: t().system.backupFilter, extensions: ['json'] }]
       }
       const res = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options)
       if (res.canceled || res.filePaths.length === 0) return { cancelled: true }
@@ -129,7 +132,7 @@ export function registerIpc(deps: IpcDeps): void {
       try {
         data = JSON.parse(readFileSync(res.filePaths[0], 'utf8'))
       } catch {
-        throw new ValidationError('Il file selezionato non è un JSON valido')
+        throw new ValidationError(t().errors.invalidJson)
       }
 
       const dir = join(app.getPath('userData'), 'backups')
@@ -153,7 +156,7 @@ export function registerIpc(deps: IpcDeps): void {
     'backup:chooseFolder': async (_req, sender) => {
       const win = BrowserWindow.fromWebContents(sender)
       const options = {
-        title: 'Cartella per i backup automatici',
+        title: t().system.backupFolderTitle,
         defaultPath: deps.backup.folder(),
         properties: ['openDirectory' as const, 'createDirectory' as const]
       }
@@ -171,6 +174,7 @@ export function registerIpc(deps: IpcDeps): void {
       mkdirSync(folder, { recursive: true })
       void shell.openPath(folder)
     },
+    'app:relaunch': () => deps.relaunch(),
     'quick:close': () => deps.closeQuickAdd(),
     'quick:resize': ({ height }) => deps.resizeQuickAdd(height)
   }
@@ -179,7 +183,7 @@ export function registerIpc(deps: IpcDeps): void {
     const handler = handlers[channel] as (req: unknown, sender: WebContents) => unknown
     ipcMain.handle(channel, async (event: IpcMainInvokeEvent, req: unknown): Promise<Wire<unknown>> => {
       if (!isTrustedUrl(event.senderFrame?.url ?? '')) {
-        return { ok: false, error: { name: 'SecurityError', message: 'Mittente non autorizzato' } }
+        return { ok: false, error: { name: 'SecurityError', message: t().errors.untrustedSender } }
       }
       try {
         return { ok: true, data: await handler(req, event.sender) }

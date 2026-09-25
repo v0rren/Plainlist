@@ -1,4 +1,5 @@
 import { groupTasks } from '../../core/grouping'
+import { t } from '../../core/i18n'
 import { buildMyDay, type MyDay } from '../../core/myDay'
 import { parseQuickInput } from '../../core/parser'
 import { buildPersonOverview, type PersonOverview } from '../../core/person'
@@ -53,9 +54,10 @@ export class TaskService {
     const parsed = parseQuickInput(text, {
       now: this.clock(),
       knownAreas: facets.areas.map((a) => a.name),
-      knownPeople: facets.people.map((p) => p.name)
+      knownPeople: facets.people.map((p) => p.name),
+      language: this.settings.getAll().language
     })
-    if (!parsed.title) throw new ValidationError('Il titolo è obbligatorio')
+    if (!parsed.title) throw new ValidationError(t().errors.titleRequired)
     const { defaultAreaId } = this.settings.getAll()
     const defaultArea = defaultAreaId !== null && this.tasks.areas.get(defaultAreaId) ? defaultAreaId : null
     return this.tasks.create({

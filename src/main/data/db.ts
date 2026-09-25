@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { t } from '../../core/i18n'
 import { MIGRATIONS, type Migration } from './migrations'
 
 export type DB = Database.Database
@@ -10,10 +11,7 @@ export class SchemaTooNewError extends Error {
     readonly found: number,
     readonly supported: number
   ) {
-    super(
-      `Il database è stato creato da una versione più recente di Plainlist (schema ${found}, questa versione arriva al ${supported}). ` +
-        'Installa la versione più recente: i dati non sono stati toccati.'
-    )
+    super(t().errors.schemaTooNew(found, supported))
     this.name = 'SchemaTooNewError'
   }
 }

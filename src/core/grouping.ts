@@ -1,3 +1,4 @@
+import { t } from './i18n'
 import { addDays, type DateKey } from './time'
 import { byCompletedDesc, byPriorityThenDue } from './sorting'
 import type { Task } from './types'
@@ -6,13 +7,8 @@ export type GroupId = 'overdue' | 'today' | 'upcoming' | 'later' | 'noDue' | 'co
 
 export const GROUP_ORDER: GroupId[] = ['overdue', 'today', 'upcoming', 'later', 'noDue', 'completed']
 
-export const GROUP_LABEL: Record<GroupId, string> = {
-  overdue: 'Scaduti',
-  today: 'Oggi',
-  upcoming: 'Prossimi 7 giorni',
-  later: 'Più avanti',
-  noDue: 'Senza scadenza',
-  completed: 'Completati'
+export function groupLabel(id: GroupId): string {
+  return t().groups[id]
 }
 
 export interface TaskGroup {
@@ -37,6 +33,6 @@ export function groupTasks(tasks: Task[], today: DateKey, upcomingDays = 7): Tas
   return GROUP_ORDER.map((id) => {
     const list = buckets.get(id)!
     list.sort(id === 'completed' ? byCompletedDesc : byPriorityThenDue)
-    return { id, label: GROUP_LABEL[id], tasks: list }
+    return { id, label: groupLabel(id), tasks: list }
   })
 }

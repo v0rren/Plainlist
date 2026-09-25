@@ -5,7 +5,7 @@ const CLOCK_RE = /^(\d{1,2})(?:[:.](\d{2}))?$/
 const BARE_RE = /^(\d{1,2}):(\d{2})$/
 
 function toTime(h: number, m: number, length: number, afternoonShift: boolean): RuleMatch<'time'> {
-  if (h > 23 || m > 59) return { length, status: 'invalid', message: 'Orario non valido' }
+  if (h > 23 || m > 59) return { length, status: 'invalid', message: 'invalidTime' }
   const hours = afternoonShift && h >= 1 && h <= 7 ? h + 12 : h
   return { length, status: 'ok', value: makeTimeKey(hours, m) }
 }

@@ -1,3 +1,4 @@
+import { t } from './i18n'
 import {
   addDays,
   addMonths,
@@ -24,7 +25,6 @@ export interface Recurrence {
 }
 
 const WEEKDAY_CODES = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
-const WEEKDAY_NAMES = ['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica']
 export const WORKDAYS = [1, 2, 3, 4, 5]
 
 export function isWorkdays(r: Recurrence): boolean {
@@ -62,37 +62,32 @@ export function fromRRule(rrule: string, anchor: RecurrenceAnchor = 'schedule'):
   return normalizeRecurrence(r)
 }
 
-function joinItalian(items: string[]): string {
-  return items.length <= 1 ? items.join('') : `${items.slice(0, -1).join(', ')} e ${items.at(-1)}`
-}
-
 export function describeRecurrence(r: Recurrence): string {
+  const m = t().recurrence
   let text: string
-  if (isWorkdays(r)) text = 'ogni giorno lavorativo'
-  else if (r.byWeekday?.length) text = `ogni ${joinItalian(r.byWeekday.map((d) => WEEKDAY_NAMES[d - 1]))}`
+  if (isWorkdays(r)) text = m.workdays
+  else if (r.byWeekday?.length) text = m.onWeekdays(m.join(r.byWeekday.map((d) => m.weekdayNames[d - 1])))
   else {
     const n = r.interval
     switch (r.freq) {
       case 'daily':
-        text = n === 1 ? 'ogni giorno' : `ogni ${n} giorni`
+        text = m.daily(n)
         break
       case 'weekly':
-        text = n === 1 ? 'ogni settimana' : `ogni ${n} settimane`
+        text = m.weekly(n)
         break
-      case 'monthly': {
-        const base = n === 1 ? 'ogni mese' : `ogni ${n} mesi`
+      case 'monthly':
         text =
-          r.byMonthDay === -1 ? (n === 1 ? 'ogni fine mese' : `${base} a fine mese`)
-          : r.byMonthDay !== undefined ? `${base} il ${r.byMonthDay}`
-          : base
+          r.byMonthDay === -1 ? m.monthlyLastDay(n)
+          : r.byMonthDay !== undefined ? m.monthlyOnDay(m.monthly(n), r.byMonthDay)
+          : m.monthly(n)
         break
-      }
       case 'yearly':
-        text = n === 1 ? 'ogni anno' : `ogni ${n} anni`
+        text = m.yearly(n)
         break
     }
   }
-  return r.anchor === 'completion' ? `${text} dal completamento` : text
+  return r.anchor === 'completion' ? m.fromCompletion(text) : text
 }
 
 function monthDay(year: number, month: number, byMonthDay: number): number {

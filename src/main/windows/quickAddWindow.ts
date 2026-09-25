@@ -1,4 +1,5 @@
 import { BrowserWindow, screen } from 'electron'
+import { t } from '../../core/i18n'
 import { loadPage, preloadPath } from './mainWindow'
 import { hardenWebContents } from './security'
 
@@ -23,7 +24,7 @@ export class QuickAddWindow {
       fullscreenable: false,
       skipTaskbar: true,
       alwaysOnTop: true,
-      title: 'Aggiunta rapida',
+      title: t().system.quickAddTitle,
       backgroundColor: '#00000000',
       webPreferences: {
         preload: preloadPath(),

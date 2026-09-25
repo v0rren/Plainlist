@@ -1,3 +1,4 @@
+import { getLanguage, t } from '@core/i18n'
 import { CheckCircle2, ChevronLeft, ChevronRight, Sparkles, Sun, X } from 'lucide-react'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { cn } from '../lib/ui'
@@ -32,7 +33,7 @@ function Syntax({ items }: { items: Array<[ReactNode, string]> }) {
   )
 }
 
-const STEPS: Step[] = [
+const STEPS_IT: Step[] = [
   {
     target: 'quick',
     placement: 'bottom',
@@ -138,7 +139,7 @@ const STEPS: Step[] = [
     title: 'Impostazioni e backup',
     body: (
       <>
-        Avvio con Windows, tema, scorciatoia globale, notifiche e area predefinita. Ogni giorno viene fatto un backup
+        Lingua, avvio con Windows, tema, scorciatoia globale, notifiche e area predefinita. Ogni giorno viene fatto un backup
         automatico in <Code>Documenti\Plainlist Backup</Code>: puoi scegliere un'altra cartella, per esempio dentro OneDrive.
       </>
     )
@@ -156,6 +157,134 @@ const STEPS: Step[] = [
     )
   }
 ]
+
+const STEPS_EN: Step[] = [
+  {
+    target: 'quick',
+    placement: 'bottom',
+    title: 'Type the way you talk',
+    body: (
+      <>
+        Type the task in plain words and press <Code>Enter</Code>. Right below the box you see how it was understood:
+        title, date, priority, area, people. Anything that isn't recognised stays in the title and is highlighted.
+      </>
+    ),
+    example: 'Send quote to @Marco friday at 12 !high ~1h'
+  },
+  {
+    target: 'quick',
+    placement: 'bottom',
+    title: 'The syntax in short',
+    body: (
+      <Syntax
+        items={[
+          [<><Code>tomorrow</Code> <Code>friday</Code> <Code>15/10</Code></>, 'due date'],
+          [<><Code>at 3pm</Code> <Code>9:30</Code></>, 'time'],
+          [<><Code>!high</Code> <Code>!!!</Code></>, 'priority'],
+          [<Code>#home</Code>, 'area (without # it goes to the default area)'],
+          [<><Code>@Marco</Code> <Code>+tag</Code></>, 'people and tags'],
+          [<Code>~30m</Code>, 'time estimate'],
+          [<Code>every monday</Code>, 'repeat'],
+          [<Code>starting monday</Code>, 'hidden until that day'],
+          [<Code>+waiting</Code>, 'delegated, waiting on others']
+        ]}
+      />
+    ),
+    example: 'KPI review @Marco every monday at 9 ~1h'
+  },
+  {
+    target: 'nav-views',
+    placement: 'right',
+    view: 'list',
+    title: 'Views',
+    body: (
+      <>
+        Tasks are grouped by due date. <strong>Today</strong> also includes overdue tasks. Drag a task onto{' '}
+        <strong>Today</strong> or <strong>Tomorrow</strong> to move it. <strong>Waiting</strong> collects what you
+        delegated, <strong>Scheduled</strong> what's hidden until a date.
+      </>
+    )
+  },
+  {
+    target: 'nav-myday',
+    placement: 'right',
+    view: 'myDay',
+    title: 'My Day',
+    body: (
+      <>
+        Every morning, pick what to work on: press <Sun size={13} className="inline text-warning" /> on a task, drag it
+        here or take it from the suggestions. The bar compares your estimates with the hours you have. The list empties
+        itself every day, and the morning notification opens this view.
+      </>
+    )
+  },
+  {
+    target: 'main',
+    placement: 'inside',
+    view: 'list',
+    title: 'Every task',
+    body: (
+      <>
+        Click a task to open its details: notes, repeat, "visible from", estimate, people. Hovering shows quick actions:
+        My Day, move to tomorrow or next week, priority, delete (with undo). With the keyboard: <Code>↑</Code>{' '}
+        <Code>↓</Code> to move, <Code>Space</Code> to complete, <Code>Del</Code> to delete.
+      </>
+    )
+  },
+  {
+    target: 'nav-update',
+    placement: 'right',
+    view: 'update',
+    title: 'Update',
+    body: (
+      <>
+        Where things stand: overdue, today, the next 7 days, waiting, stalled for more than 14 days, and a suggestion on
+        what to tackle first. <strong>Copy</strong> it and paste it into Teams or an email. Shortcut:{' '}
+        <Code>Ctrl+U</Code>.
+      </>
+    )
+  },
+  {
+    target: 'nav-areas',
+    placement: 'right',
+    view: 'list',
+    title: 'Areas and people',
+    body: (
+      <>
+        Click an area to filter the list. When you type <Code>@Name</Code>, the person shows up below: click them to see
+        everything about them, what you're waiting on from them, and a summary to copy for your 1:1.
+      </>
+    )
+  },
+  {
+    target: 'nav-settings',
+    placement: 'right',
+    view: 'list',
+    title: 'Settings and backup',
+    body: (
+      <>
+        Language, start with Windows, theme, global shortcut, notifications and default area. Every day an automatic
+        backup goes to <Code>Documents\Plainlist Backup</Code>: you can pick another folder, for example inside OneDrive.
+      </>
+    )
+  },
+  {
+    placement: 'center',
+    view: 'list',
+    title: 'Always within reach',
+    body: (
+      <>
+        When you close the window with the X, Plainlist stays in the notification area next to the clock. From any
+        program, <Code>Ctrl+Alt+Space</Code> opens quick add (you can change the keys in Settings). Everything works
+        offline and your data stays on this PC.
+      </>
+    )
+  }
+]
+
+function steps(): Step[] {
+  return getLanguage() === 'en' ? STEPS_EN : STEPS_IT
+}
 
 const CARD_WIDTH = 380
 const GAP = 14
@@ -206,24 +335,22 @@ function cardPosition(
 function Welcome() {
   const setTour = useStore((s) => s.setTour)
   const endTour = useStore((s) => s.endTour)
+  const m = t().tour
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40" data-modal>
-      <div role="dialog" aria-label="Benvenuto" className="w-[460px] rounded-2xl border border-line bg-surface p-6 shadow-pop">
+      <div role="dialog" aria-label={m.welcome} className="w-[460px] rounded-2xl border border-line bg-surface p-6 shadow-pop">
         <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft text-accent">
           <Sparkles size={22} />
         </div>
-        <h2 className="text-lg font-semibold">Benvenuto in Plainlist</h2>
-        <p className="mt-2 text-sm text-muted">
-          Le tue cose da fare, offline e in italiano. Vuoi un giro veloce delle funzioni principali? Ci vuole circa un
-          minuto.
-        </p>
+        <h2 className="text-lg font-semibold">{m.welcomeTitle}</h2>
+        <p className="mt-2 text-sm text-muted">{m.welcomeBody}</p>
         <div className="mt-6 flex items-center gap-2">
-          <span className="text-xs text-subtle">Puoi rivederlo da Impostazioni.</span>
+          <span className="text-xs text-subtle">{m.welcomeLater}</span>
           <button className="btn ml-auto" onClick={endTour}>
-            Salta
+            {m.skip}
           </button>
           <button className="btn-primary" autoFocus onClick={() => setTour(0)}>
-            Inizia il tour <ChevronRight size={15} />
+            {m.start} <ChevronRight size={15} />
           </button>
         </div>
       </div>
@@ -236,6 +363,8 @@ function TourStep({ index }: { index: number }) {
   const endTour = useStore((s) => s.endTour)
   const setMainView = useStore((s) => s.setMainView)
   const closeDetail = useStore((s) => s.closeDetail)
+  const m = t().tour
+  const STEPS = steps()
   const step = STEPS[index]
   const last = index === STEPS.length - 1
   const rect = useTargetRect(step.target, index)
@@ -254,7 +383,7 @@ function TourStep({ index }: { index: number }) {
   const go = useCallback(
     (next: number) => {
       if (next < 0) return
-      if (next >= STEPS.length) endTour()
+      if (next >= steps().length) endTour()
       else setTour(next)
     },
     [endTour, setTour]
@@ -302,9 +431,9 @@ function TourStep({ index }: { index: number }) {
       >
         <div className="mb-1 flex items-center gap-2">
           <span className="text-xs font-medium text-accent">
-            {index + 1} di {STEPS.length}
+            {m.stepOf(index + 1, STEPS.length)}
           </span>
-          <button className="icon-btn ml-auto h-6 w-6" onClick={endTour} title="Chiudi il tour (Esc)">
+          <button className="icon-btn ml-auto h-6 w-6" onClick={endTour} title={m.close}>
             <X size={14} />
           </button>
         </div>
@@ -315,9 +444,9 @@ function TourStep({ index }: { index: number }) {
           <button
             className="mt-3 block w-full rounded-md border border-dashed border-accent/50 px-3 py-2 text-left hover:bg-accent-soft"
             onClick={() => window.dispatchEvent(new CustomEvent('plainlist:fill-quick', { detail: step.example }))}
-            title="Scrive l'esempio nel campo in alto, senza salvarlo"
+            title={m.tryExampleHint}
           >
-            <span className="block text-xs font-medium text-accent">Prova un esempio</span>
+            <span className="block text-xs font-medium text-accent">{m.tryExample}</span>
             <span className="mt-0.5 block font-mono text-xs text-fg">{step.example}</span>
           </button>
         )}
@@ -330,20 +459,20 @@ function TourStep({ index }: { index: number }) {
           </div>
           {!last && (
             <button className="btn-ghost ml-auto text-xs" onClick={endTour}>
-              Salta
+              {m.skip}
             </button>
           )}
-          <button className={cn('btn px-2', last && 'ml-auto')} disabled={index === 0} onClick={() => go(index - 1)} title="Indietro (←)">
+          <button className={cn('btn px-2', last && 'ml-auto')} disabled={index === 0} onClick={() => go(index - 1)} title={m.back}>
             <ChevronLeft size={15} />
           </button>
-          <button className="btn-primary" autoFocus onClick={() => go(index + 1)} title="Avanti (→)">
+          <button className="btn-primary" autoFocus onClick={() => go(index + 1)} title={m.nextHint}>
             {last ? (
               <>
-                <CheckCircle2 size={15} /> Inizia
+                <CheckCircle2 size={15} /> {m.finish}
               </>
             ) : (
               <>
-                Avanti <ChevronRight size={15} />
+                {m.next} <ChevronRight size={15} />
               </>
             )}
           </button>

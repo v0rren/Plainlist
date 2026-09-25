@@ -1,5 +1,6 @@
+import { LANGUAGES, t } from '@core/i18n'
 import type { AreaUpsert, BackupStatus } from '@shared/ipc'
-import type { Area, Settings } from '@shared/types'
+import type { Area, Language, Settings } from '@shared/types'
 import { Archive, ArchiveRestore, Download, FolderOpen, Plus, RefreshCw, Trash2, Upload } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { ConfirmDialog } from '../components/Modal'
@@ -39,7 +40,7 @@ export function toAccelerator(e: KeyboardEvent | React.KeyboardEvent): string | 
 export function describeAccelerator(acc: string): string {
   return acc
     .split('+')
-    .map((p) => ({ Control: 'Ctrl', Space: 'Spazio', Super: 'Win', Up: '↑', Down: '↓', Left: '←', Right: '→' })[p] ?? p)
+    .map((p) => ({ Control: 'Ctrl', Space: t().settings.spaceKey, Super: 'Win', Up: '↑', Down: '↓', Left: '←', Right: '→' })[p] ?? p)
     .join('+')
 }
 
@@ -108,7 +109,7 @@ function HotkeyRecorder({ value, onChange }: { value: string; onChange(v: string
         }
       }}
     >
-      {recording ? 'Premi la combinazione…' : describeAccelerator(value)}
+      {recording ? t().settings.hotkeyRecording : describeAccelerator(value)}
     </button>
   )
 }
@@ -138,6 +139,7 @@ function BackupSection({ settings, update }: { settings: Settings; update(patch:
   const [status, setStatus] = useState<BackupStatus | null>(null)
   const [busy, setBusy] = useState(false)
   const b = settings.autoBackup
+  const m = t().settings
 
   useEffect(() => {
     void api.invoke('backup:status').then(setStatus)
@@ -150,7 +152,7 @@ function BackupSection({ settings, update }: { settings: Settings; update(patch:
       if (!('cancelled' in res)) {
         setStatus(res)
         if (res.lastError) toast({ kind: 'error', message: res.lastError })
-        else toast({ kind: 'info', message: `Backup salvato in ${res.lastPath}` })
+        else toast({ kind: 'info', message: m.backupSaved(res.lastPath ?? '') })
       }
     } catch (err) {
       toast({ kind: 'error', message: errorMessage(err) })
@@ -160,38 +162,35 @@ function BackupSection({ settings, update }: { settings: Settings; update(patch:
   }
 
   return (
-    <Section title="Backup automatico">
-      <Item label="Backup giornaliero" hint="Una volta al giorno salva tutti i dati in JSON (lo stesso formato di Esporta)">
+    <Section title={m.backup}>
+      <Item label={m.dailyBackup} hint={m.dailyBackupHint}>
         <Toggle checked={b.enabled} onChange={(v) => void update({ autoBackup: { ...b, enabled: v } })} />
       </Item>
       <Item
-        label="Cartella"
-        hint={
-          status?.folder ??
-          'Documenti\\Plainlist Backup. Se scegli una cartella dentro OneDrive, i backup vengono sincronizzati da OneDrive.'
-        }
+        label={m.folder}
+        hint={status?.folder ?? m.folderHint}
       >
         <div className="flex gap-2">
           <button className="btn" disabled={busy} onClick={() => void act(() => api.invoke('backup:chooseFolder'))}>
-            <FolderOpen size={14} /> Scegli…
+            <FolderOpen size={14} /> {m.choose}
           </button>
           <button className="btn" onClick={() => void api.invoke('backup:openFolder')}>
-            Apri
+            {t().common.open}
           </button>
         </div>
       </Item>
-      <Item label="Backup da conservare" hint="I più vecchi vengono eliminati">
+      <Item label={m.keep} hint={m.keepHint}>
         <NumberField value={b.keep} min={1} max={365} onChange={(v) => void update({ autoBackup: { ...b, keep: v } })} />
       </Item>
       <Item
-        label="Ultimo backup"
+        label={m.lastBackup}
         hint={
           status?.lastError ??
-          (status?.lastAt ? `${formatDateTime(status.lastAt)} · ${status.lastPath}` : 'Non ancora eseguito')
+          (status?.lastAt ? `${formatDateTime(status.lastAt)} · ${status.lastPath}` : m.neverRun)
         }
       >
         <button className="btn" disabled={busy} onClick={() => void act(() => api.invoke('backup:runNow'))}>
-          <RefreshCw size={14} /> Esegui ora
+          <RefreshCw size={14} /> {m.runNow}
         </button>
       </Item>
     </Section>
@@ -204,6 +203,7 @@ function AreasEditor() {
   const [newName, setNewName] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<Area | null>(null)
 
+  const m = t().settings
   const load = async (): Promise<void> => setAreas(await api.invoke('areas:list'))
   useEffect(() => {
     void load()
@@ -228,7 +228,7 @@ function AreasEditor() {
             value={a.color ?? '#888888'}
             onChange={(e) => void upsert({ id: a.id, name: a.name, color: e.target.value })}
             className="h-6 w-6 cursor-pointer rounded border-0 bg-transparent p-0"
-            title="Colore"
+            title={m.color}
           />
           <input
             defaultValue={a.name}
@@ -238,12 +238,12 @@ function AreasEditor() {
           />
           <button
             className="icon-btn"
-            title={a.archived ? 'Ripristina' : 'Archivia (nasconde l\'area senza toccare i task)'}
+            title={a.archived ? m.restoreArea : m.archiveArea}
             onClick={() => void upsert({ id: a.id, name: a.name, archived: !a.archived })}
           >
             {a.archived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
           </button>
-          <button className="icon-btn hover:text-danger" title="Elimina" onClick={() => setConfirmDelete(a)}>
+          <button className="icon-btn hover:text-danger" title={t().common.delete} onClick={() => setConfirmDelete(a)}>
             <Trash2 size={15} />
           </button>
         </div>
@@ -256,21 +256,20 @@ function AreasEditor() {
           void upsert({ name: newName }).then(() => setNewName(''))
         }}
       >
-        <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Nuova area" className="field flex-1 py-1" />
+        <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder={m.newArea} className="field flex-1 py-1" />
         <button className="btn" type="submit" disabled={!newName.trim()}>
-          <Plus size={14} /> Aggiungi
+          <Plus size={14} /> {t().common.add}
         </button>
       </form>
       {confirmDelete && (
         <ConfirmDialog
-          title="Eliminare l'area?"
+          title={m.deleteAreaTitle}
           message={
             <>
-              L'area <strong>{confirmDelete.name}</strong> verrà eliminata. I suoi task restano, ma senza area. Se vuoi
-              solo nasconderla, usa "Archivia".
+              {m.deleteAreaBefore} <strong>{confirmDelete.name}</strong> {m.deleteAreaAfter}
             </>
           }
-          confirmLabel="Elimina"
+          confirmLabel={t().common.delete}
           danger
           onCancel={() => setConfirmDelete(null)}
           onConfirm={() => {
@@ -293,6 +292,7 @@ export function SettingsView() {
   const [confirmImport, setConfirmImport] = useState(false)
 
   if (!settings) return null
+  const m = t().settings
 
   async function update(patch: Partial<Settings>): Promise<void> {
     try {
@@ -309,7 +309,7 @@ export function SettingsView() {
   async function exportData(): Promise<void> {
     try {
       const res = await api.invoke('data:export')
-      if (!('cancelled' in res)) toast({ kind: 'info', message: `Backup salvato in ${res.path}` })
+      if (!('cancelled' in res)) toast({ kind: 'info', message: m.backupSaved(res.path) })
     } catch (err) {
       toast({ kind: 'error', message: errorMessage(err) })
     }
@@ -320,7 +320,7 @@ export function SettingsView() {
     try {
       const res = await api.invoke('data:import')
       if (!('cancelled' in res)) {
-        toast({ kind: 'info', message: `Importati ${res.tasks} task e ${res.areas} aree. Copia dei dati precedenti: ${res.backupPath}`, timeoutMs: 9000 })
+        toast({ kind: 'info', message: m.imported(res.tasks, res.areas, res.backupPath), timeoutMs: 9000 })
       }
     } catch (err) {
       toast({ kind: 'error', message: errorMessage(err) })
@@ -331,30 +331,43 @@ export function SettingsView() {
 
   return (
     <div className="max-w-3xl space-y-4 px-6 py-5">
-      <h1 className="text-xl font-semibold">Impostazioni</h1>
+      <h1 className="text-xl font-semibold">{m.title}</h1>
 
-      <Section title="Generale">
-        <Item label="Avvia con Windows" hint="All'accesso l'app parte ridotta nell'area di notifica">
+      <Section title={m.general}>
+        <Item label={m.language} hint={m.languageHint}>
+          <select
+            value={settings.language}
+            onChange={(e) => void update({ language: e.target.value as Language })}
+            className="field w-auto"
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </Item>
+        <Item label={m.autostart} hint={m.autostartHint}>
           <Toggle checked={settings.autostart} onChange={(v) => void update({ autostart: v })} />
         </Item>
-        <Item label="Tema">
+        <Item label={m.theme}>
           <select
             value={settings.theme}
             onChange={(e) => void update({ theme: e.target.value as Settings['theme'] })}
             className="field w-auto"
           >
-            <option value="system">Come Windows</option>
-            <option value="light">Chiaro</option>
-            <option value="dark">Scuro</option>
+            <option value="system">{m.themes.system}</option>
+            <option value="light">{m.themes.light}</option>
+            <option value="dark">{m.themes.dark}</option>
           </select>
         </Item>
-        <Item label="Area predefinita" hint="Usata dall'inserimento rapido quando non scrivi #area">
+        <Item label={m.defaultArea} hint={m.defaultAreaHint}>
           <select
             value={settings.defaultAreaId ?? ''}
             onChange={(e) => void update({ defaultAreaId: e.target.value ? Number(e.target.value) : null })}
             className="field w-auto"
           >
-            <option value="">Nessuna</option>
+            <option value="">{t().common.none}</option>
             {facets?.areas.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
@@ -362,58 +375,58 @@ export function SettingsView() {
             ))}
           </select>
         </Item>
-        <Item label="Tour di benvenuto" hint="Un giro veloce delle funzioni principali">
+        <Item label={m.tour} hint={m.tourHint}>
           <button className="btn" onClick={() => useStore.getState().setTour(0)}>
-            Rivedi il tour
+            {m.tourAgain}
           </button>
         </Item>
-        <Item label="Scorciatoia globale" hint="Apre l'aggiunta rapida da qualunque programma. Clicca e premi i tasti.">
+        <Item label={m.hotkey} hint={m.hotkeyHint}>
           <HotkeyRecorder value={settings.globalHotkey} onChange={(v) => void update({ globalHotkey: v })} />
         </Item>
       </Section>
 
-      <Section title="Notifiche">
-        <Item label="Notifiche attive">
+      <Section title={m.notifications}>
+        <Item label={m.notificationsOn}>
           <Toggle checked={n.enabled} onChange={(v) => void notify({ enabled: v })} />
         </Item>
-        <Item label="Riepilogo all'avvio" hint="Numero di task scaduti e in scadenza oggi">
+        <Item label={m.startupDigest} hint={m.startupDigestHint}>
           <Toggle checked={n.startupDigest} disabled={!n.enabled} onChange={(v) => void notify({ startupDigest: v })} />
         </Item>
-        <Item label="Riepilogo al primo sblocco del giorno">
+        <Item label={m.unlockDigest}>
           <Toggle
             checked={n.dailyDigestOnUnlock}
             disabled={!n.enabled}
             onChange={(v) => void notify({ dailyDigestOnUnlock: v })}
           />
         </Item>
-        <Item label="Avviso all'orario del task">
+        <Item label={m.dueAlerts}>
           <Toggle checked={n.dueAlerts} disabled={!n.enabled} onChange={(v) => void notify({ dueAlerts: v })} />
         </Item>
-        <Item label="Preavviso">
+        <Item label={m.remindBefore}>
           <select
             value={n.remindBeforeMin ?? ''}
             disabled={!n.enabled || !n.dueAlerts}
             onChange={(e) => void notify({ remindBeforeMin: e.target.value ? Number(e.target.value) : null })}
             className="field w-auto disabled:opacity-40"
           >
-            <option value="">Nessuno</option>
-            {[5, 10, 15, 30, 60].map((m) => (
-              <option key={m} value={m}>
-                {m} minuti prima
+            <option value="">{t().common.noneMasculine}</option>
+            {[5, 10, 15, 30, 60].map((minutes) => (
+              <option key={minutes} value={minutes}>
+                {m.minutesBefore(minutes)}
               </option>
             ))}
           </select>
         </Item>
       </Section>
 
-      <Section title="Elenco e riepilogo">
-        <Item label="Giorni in &quot;Prossimi giorni&quot;">
+      <Section title={m.listAndSummary}>
+        <Item label={m.upcomingDays}>
           <NumberField value={settings.upcomingDays} min={1} max={31} onChange={(v) => void update({ upcomingDays: v })} />
         </Item>
-        <Item label="Task fermi dopo (giorni)">
+        <Item label={m.staleDays}>
           <NumberField value={settings.staleDays} min={1} max={365} onChange={(v) => void update({ staleDays: v })} />
         </Item>
-        <Item label="Ore di lavoro al giorno" hint="Per il carico di Il mio giorno">
+        <Item label={m.workHours} hint={m.workHoursHint}>
           <NumberField
             value={Math.round(settings.workdayMinutes / 60)}
             min={1}
@@ -421,42 +434,42 @@ export function SettingsView() {
             onChange={(v) => void update({ workdayMinutes: v * 60 })}
           />
         </Item>
-        <Item label="Tempo per annullare un'eliminazione (secondi)">
+        <Item label={m.undoSeconds}>
           <NumberField value={settings.undoSeconds} min={2} max={30} onChange={(v) => void update({ undoSeconds: v })} />
         </Item>
       </Section>
 
-      <Section title="Aree">
+      <Section title={m.areas}>
         <AreasEditor />
       </Section>
 
       <BackupSection settings={settings} update={update} />
 
-      <Section title="Dati">
-        <Item label="Esporta" hint="Salva tutti i task, le aree e le impostazioni in un file JSON">
+      <Section title={m.data}>
+        <Item label={m.export} hint={m.exportHint}>
           <button className="btn" onClick={() => void exportData()}>
-            <Download size={14} /> Esporta JSON
+            <Download size={14} /> {m.exportButton}
           </button>
         </Item>
-        <Item label="Importa" hint="Sostituisce tutti i dati attuali con quelli del file (prima ne salva una copia)">
+        <Item label={m.import} hint={m.importHint}>
           <button className="btn" onClick={() => setConfirmImport(true)}>
-            <Upload size={14} /> Importa JSON
+            <Upload size={14} /> {m.importButton}
           </button>
         </Item>
-        <Item label="Cartella dei dati">
+        <Item label={m.dataFolder}>
           <button className="btn" onClick={() => void api.invoke('app:openDataFolder')}>
-            <FolderOpen size={14} /> Apri
+            <FolderOpen size={14} /> {t().common.open}
           </button>
         </Item>
       </Section>
 
-      <p className="pb-4 text-center text-xs text-subtle">Plainlist {version} · funziona offline, i dati restano su questo PC</p>
+      <p className="pb-4 text-center text-xs text-subtle">{m.footer(version)}</p>
 
       {confirmImport && (
         <ConfirmDialog
-          title="Importare un backup?"
-          message="Tutti i task, le aree e le impostazioni attuali verranno sostituiti con quelli del file. Prima dell'import viene salvata automaticamente una copia dei dati attuali."
-          confirmLabel="Scegli il file…"
+          title={m.importTitle}
+          message={m.importMessage}
+          confirmLabel={m.chooseFile}
           onCancel={() => setConfirmImport(false)}
           onConfirm={() => void importData()}
         />

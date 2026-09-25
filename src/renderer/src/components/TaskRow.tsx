@@ -1,4 +1,5 @@
 import { useDraggable } from '@dnd-kit/core'
+import { t } from '@core/i18n'
 import { formatEstimate } from '@core/parser'
 import { describeRecurrence } from '@core/recurrence'
 import { formatDateShort } from '@core/time'
@@ -45,7 +46,7 @@ function PriorityMenu({ task }: { task: Task }) {
     <div className="relative" ref={ref}>
       <button
         className="icon-btn"
-        title="Cambia priorità"
+        title={t().priority.change}
         onClick={(e) => {
           e.stopPropagation()
           setOpen(!open)
@@ -91,6 +92,7 @@ export function TaskRow({ task, today }: { task: Task; today: string }) {
   const prio = priorityMeta(task.priority)
   const inMyDay = task.myDayDate === today
   const hidden = task.startDate !== null && task.startDate > today
+  const m = t()
   const hasMeta =
     due || task.areaName || task.people.length > 0 || task.tags.length > 0 || task.notes ||
     task.recurrence || task.estimateMin || task.waiting || hidden
@@ -118,14 +120,14 @@ export function TaskRow({ task, today }: { task: Task; today: string }) {
       )}
     >
       <span className={cn('absolute top-2 bottom-2 left-0 w-[3px] rounded-full', !done && task.priority !== 2 && prio.bg)} />
-      <Checkbox checked={done} onChange={(v) => void taskActions.complete(task.id, v)} label="Completa" />
+      <Checkbox checked={done} onChange={(v) => void taskActions.complete(task.id, v)} label={m.common.complete} />
       <div className="min-w-0 flex-1">
         <div className={cn('truncate', done ? 'text-subtle line-through' : 'text-fg')}>{task.title}</div>
         {hasMeta && (
           <div className="mt-0.5 flex items-center gap-3 truncate text-xs text-muted">
             {hidden && (
-              <span className="inline-flex items-center gap-0.5 text-subtle" title="Nascosto fino a questa data">
-                <EyeOff size={11} /> dal {formatDateShort(task.startDate!, today)}
+              <span className="inline-flex items-center gap-0.5 text-subtle" title={m.row.hiddenUntil}>
+                <EyeOff size={11} /> {m.row.from(formatDateShort(task.startDate!, today))}
               </span>
             )}
             {due && <span className={DUE_TONE_CLASS[due.tone]}>{due.text}</span>}
@@ -136,7 +138,7 @@ export function TaskRow({ task, today }: { task: Task; today: string }) {
             )}
             {task.waiting && (
               <span className="inline-flex items-center gap-0.5 text-warning">
-                <Hourglass size={11} /> in attesa
+                <Hourglass size={11} /> {m.common.waiting}
               </span>
             )}
             {task.estimateMin && <span>~{formatEstimate(task.estimateMin)}</span>}
@@ -165,7 +167,7 @@ export function TaskRow({ task, today }: { task: Task; today: string }) {
         >
           <button
             className={cn('icon-btn', inMyDay && 'text-warning')}
-            title={inMyDay ? 'Togli da Il mio giorno' : 'Aggiungi a Il mio giorno'}
+            title={inMyDay ? m.common.removeFromMyDay : m.common.addToMyDay}
             onClick={(e) => {
               e.stopPropagation()
               void taskActions.setMyDay(task.id, !inMyDay)
@@ -175,7 +177,7 @@ export function TaskRow({ task, today }: { task: Task; today: string }) {
           </button>
           <button
             className="icon-btn"
-            title="Rimanda a domani"
+            title={m.row.toTomorrow}
             onClick={(e) => {
               e.stopPropagation()
               void taskActions.reschedule(task.id, 'tomorrow')
@@ -185,7 +187,7 @@ export function TaskRow({ task, today }: { task: Task; today: string }) {
           </button>
           <button
             className="icon-btn"
-            title="Rimanda alla settimana prossima"
+            title={m.row.toNextWeek}
             onClick={(e) => {
               e.stopPropagation()
               void taskActions.reschedule(task.id, 'nextWeek')
@@ -196,7 +198,7 @@ export function TaskRow({ task, today }: { task: Task; today: string }) {
           <PriorityMenu task={task} />
           <button
             className="icon-btn hover:text-danger"
-            title="Elimina (Canc)"
+            title={m.row.deleteHint}
             onClick={(e) => {
               e.stopPropagation()
               void taskActions.remove(task)

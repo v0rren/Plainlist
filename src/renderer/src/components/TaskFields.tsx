@@ -1,3 +1,4 @@
+import { t } from '@core/i18n'
 import { formatEstimate } from '@core/parser'
 import { WORKDAYS, describeRecurrence, isWorkdays, normalizeRecurrence, type Recurrence } from '@core/recurrence'
 import { addDays, mondayOfNextWeek, parseDateKey, todayKey } from '@core/time'
@@ -38,8 +39,6 @@ export const EMPTY_DRAFT: TaskDraft = {
 }
 
 const ESTIMATES = [15, 30, 45, 60, 90, 120, 180, 240, 480]
-const WEEKDAY_SHORT = ['L', 'M', 'M', 'G', 'V', 'S', 'D']
-const WEEKDAY_FULL = ['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica']
 
 type RepeatKind = '' | 'daily' | 'workdays' | 'weekly' | 'monthly' | 'yearly'
 
@@ -82,7 +81,7 @@ export function ChipsInput({
             type="button"
             className="text-subtle hover:text-fg"
             onClick={() => onChange(values.filter((x) => x !== v))}
-            title="Rimuovi"
+            title={t().common.remove}
           >
             <X size={11} />
           </button>
@@ -148,22 +147,23 @@ function RecurrenceEditor({
   const update = (patch: Partial<Recurrence>): void => {
     if (value) onChange(normalizeRecurrence({ ...value, ...patch }))
   }
-  const unit = { daily: 'giorni', weekly: 'settimane', monthly: 'mesi', yearly: 'anni' } as const
+  const m = t().fields
+  const { weekdayInitials, weekdayNames } = t().recurrence
 
   return (
     <div className="space-y-1.5">
       <select value={kind} onChange={(e) => setKind(e.target.value as RepeatKind)} className="field">
-        <option value="">Non si ripete</option>
-        <option value="daily">Ogni giorno</option>
-        <option value="workdays">Giorni lavorativi</option>
-        <option value="weekly">Ogni settimana</option>
-        <option value="monthly">Ogni mese</option>
-        <option value="yearly">Ogni anno</option>
+        <option value="">{m.repeatOptions.none}</option>
+        <option value="daily">{m.repeatOptions.daily}</option>
+        <option value="workdays">{m.repeatOptions.workdays}</option>
+        <option value="weekly">{m.repeatOptions.weekly}</option>
+        <option value="monthly">{m.repeatOptions.monthly}</option>
+        <option value="yearly">{m.repeatOptions.yearly}</option>
       </select>
 
       {value && kind !== 'workdays' && !(kind === 'weekly' && value.byWeekday?.length) && (
         <div className="flex items-center gap-2 text-sm text-muted">
-          ogni
+          {m.every}
           <input
             type="number"
             min={1}
@@ -172,20 +172,20 @@ function RecurrenceEditor({
             onChange={(e) => update({ interval: Number(e.target.value) || 1 })}
             className="field w-16 py-1 text-right"
           />
-          {unit[value.freq]}
+          {m.units[value.freq]}
         </div>
       )}
 
       {value && kind === 'weekly' && (
         <div className="flex gap-1">
-          {WEEKDAY_SHORT.map((label, i) => {
+          {weekdayInitials.map((label, i) => {
             const day = i + 1
             const on = value.byWeekday?.includes(day) ?? false
             return (
               <button
                 type="button"
                 key={day}
-                title={WEEKDAY_FULL[i]}
+                title={weekdayNames[i]}
                 onClick={() => {
                   const days = on ? (value.byWeekday ?? []).filter((d) => d !== day) : [...(value.byWeekday ?? []), day]
                   onChange(normalizeRecurrence({ ...value, byWeekday: days.length ? days : undefined }))
@@ -204,7 +204,7 @@ function RecurrenceEditor({
 
       {value && kind === 'monthly' && (
         <div className="flex items-center gap-2 text-sm text-muted">
-          il giorno
+          {m.onDay}
           <select
             value={value.byMonthDay ?? dueDay ?? ''}
             onChange={(e) => update({ byMonthDay: e.target.value ? Number(e.target.value) : undefined })}
@@ -215,7 +215,7 @@ function RecurrenceEditor({
                 {i + 1}
               </option>
             ))}
-            <option value={-1}>ultimo del mese</option>
+            <option value={-1}>{m.lastDayOfMonth}</option>
           </select>
         </div>
       )}
@@ -228,10 +228,10 @@ function RecurrenceEditor({
               checked={anchor === 'completion'}
               onChange={(e) => update({ anchor: e.target.checked ? 'completion' : 'schedule' })}
             />
-            Riparti dal giorno in cui lo completi
+            {m.restartOnCompletion}
           </label>
           <p className="text-xs text-subtle">
-            {describeRecurrence(value)}. Completando il task compare il successivo.
+            {m.repeatSummary(describeRecurrence(value))}
           </p>
         </>
       )}
@@ -249,11 +249,12 @@ interface Props {
 
 export function TaskFields({ value, onChange, onTextCommit, autoFocusTitle }: Props) {
   const facets = useStore((s) => s.facets)
+  const m = t().fields
   const today = todayKey()
   const quickDates: Array<[string, string]> = [
-    ['Oggi', today],
-    ['Domani', addDays(today, 1)],
-    ['Lunedì prossimo', mondayOfNextWeek(today)]
+    [t().common.today, today],
+    [t().common.tomorrow, addDays(today, 1)],
+    [m.nextMonday, mondayOfNextWeek(today)]
   ]
   const estimates =
     value.estimateMin && !ESTIMATES.includes(value.estimateMin) ? [...ESTIMATES, value.estimateMin].sort((a, b) => a - b) : ESTIMATES
@@ -266,19 +267,19 @@ export function TaskFields({ value, onChange, onTextCommit, autoFocusTitle }: Pr
         onChange={(e) => onChange({ title: e.target.value })}
         onBlur={() => onTextCommit?.('title')}
         onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-        placeholder="Titolo"
+        placeholder={m.title}
         className="w-full rounded-md border border-transparent bg-transparent px-1 py-1 text-lg font-semibold outline-none hover:border-line focus:border-accent"
       />
       <textarea
         value={value.notes}
         onChange={(e) => onChange({ notes: e.target.value })}
         onBlur={() => onTextCommit?.('notes')}
-        placeholder="Note"
+        placeholder={m.notes}
         rows={3}
         className="field resize-y text-sm"
       />
 
-      <Row label="Scadenza">
+      <Row label={m.due}>
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="date"
@@ -292,11 +293,11 @@ export function TaskFields({ value, onChange, onTextCommit, autoFocusTitle }: Pr
             disabled={!value.dueDate}
             onChange={(e) => onChange({ dueTime: e.target.value })}
             className="field w-auto disabled:opacity-40"
-            title={value.dueDate ? 'Orario (facoltativo)' : 'Imposta prima una data'}
+            title={value.dueDate ? m.time : m.setDateFirst}
           />
           {value.dueDate && !value.recurrence && (
             <button type="button" className="btn-ghost text-xs" onClick={() => onChange({ dueDate: '', dueTime: '' })}>
-              <X size={13} /> Nessuna
+              <X size={13} /> {t().common.none}
             </button>
           )}
         </div>
@@ -314,7 +315,7 @@ export function TaskFields({ value, onChange, onTextCommit, autoFocusTitle }: Pr
         </div>
       </Row>
 
-      <Row label="Ripetizione">
+      <Row label={m.repeat}>
         <RecurrenceEditor
           value={value.recurrence}
           dueDate={value.dueDate}
@@ -322,24 +323,24 @@ export function TaskFields({ value, onChange, onTextCommit, autoFocusTitle }: Pr
         />
       </Row>
 
-      <Row label="Visibile dal">
+      <Row label={m.visibleFrom}>
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="date"
             value={value.startDate}
             onChange={(e) => onChange({ startDate: e.target.value })}
             className="field w-auto"
-            title="Fino a questa data il task resta nascosto (lo trovi in Programmati)"
+            title={m.visibleFromHint}
           />
           {value.startDate && (
             <button type="button" className="btn-ghost text-xs" onClick={() => onChange({ startDate: '' })}>
-              <X size={13} /> Sempre visibile
+              <X size={13} /> {m.alwaysVisible}
             </button>
           )}
         </div>
       </Row>
 
-      <Row label="Priorità">
+      <Row label={m.priority}>
         <div className="inline-flex rounded-md border border-line p-0.5">
           {PRIORITIES.map((p) => (
             <button
@@ -357,13 +358,13 @@ export function TaskFields({ value, onChange, onTextCommit, autoFocusTitle }: Pr
         </div>
       </Row>
 
-      <Row label="Stima">
+      <Row label={m.estimate}>
         <select
           value={value.estimateMin ?? ''}
           onChange={(e) => onChange({ estimateMin: e.target.value ? Number(e.target.value) : null })}
           className="field w-auto"
         >
-          <option value="">Nessuna</option>
+          <option value="">{t().common.none}</option>
           {estimates.map((m) => (
             <option key={m} value={m}>
               {formatEstimate(m)}
@@ -372,13 +373,13 @@ export function TaskFields({ value, onChange, onTextCommit, autoFocusTitle }: Pr
         </select>
       </Row>
 
-      <Row label="Area">
+      <Row label={m.area}>
         <select
           value={value.areaId ?? ''}
           onChange={(e) => onChange({ areaId: e.target.value ? Number(e.target.value) : null })}
           className="field"
         >
-          <option value="">Nessuna</option>
+          <option value="">{t().common.none}</option>
           {facets?.areas.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}
@@ -387,12 +388,12 @@ export function TaskFields({ value, onChange, onTextCommit, autoFocusTitle }: Pr
         </select>
       </Row>
 
-      <Row label="Persone">
+      <Row label={m.people}>
         <ChipsInput
           values={value.people}
           onChange={(people) => onChange({ people })}
           suggestions={facets?.people.map((p) => p.name) ?? []}
-          placeholder="Aggiungi una persona"
+          placeholder={m.addPerson}
           prefix="@"
         />
         <button
@@ -402,18 +403,18 @@ export function TaskFields({ value, onChange, onTextCommit, autoFocusTitle }: Pr
             'mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs',
             value.waiting ? 'border-warning bg-warning-soft text-warning' : 'border-line text-muted hover:bg-surface-2'
           )}
-          title="Delegato o in attesa di qualcun altro: non compare nei suggerimenti su cosa fare"
+          title={m.waitingHint}
         >
-          <Hourglass size={12} /> {value.waiting ? 'In attesa di altri' : 'Segna come in attesa'}
+          <Hourglass size={12} /> {value.waiting ? m.waitingOn : m.markWaiting}
         </button>
       </Row>
 
-      <Row label="Tag">
+      <Row label={m.tags}>
         <ChipsInput
           values={value.tags}
           onChange={(tags) => onChange({ tags })}
           suggestions={facets?.tags.map((t) => t.name) ?? []}
-          placeholder="Aggiungi un tag"
+          placeholder={m.addTag}
           prefix="+"
         />
       </Row>

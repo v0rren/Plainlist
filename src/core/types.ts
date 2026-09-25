@@ -4,8 +4,6 @@ import type { DateKey, TimeKey } from './time'
 export type Priority = 1 | 2 | 3
 export type TaskStatus = 'open' | 'done'
 
-export const PRIORITY_LABEL: Record<Priority, string> = { 3: 'alta', 2: 'media', 1: 'bassa' }
-
 export interface Task {
   id: number
   parentId: number | null

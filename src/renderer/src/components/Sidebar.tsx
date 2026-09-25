@@ -1,4 +1,5 @@
 import { useDroppable } from '@dnd-kit/core'
+import { t } from '@core/i18n'
 import type { ViewId } from '@shared/ipc'
 import {
   CalendarCheck,
@@ -23,14 +24,14 @@ import { useEffect, useState } from 'react'
 import { PRIORITIES, cn } from '../lib/ui'
 import { useStore } from '../store'
 
-const VIEWS: Array<{ id: ViewId; label: string; icon: LucideIcon; drop?: 'today' | 'tomorrow' }> = [
-  { id: 'all', label: 'Tutti', icon: Layers },
-  { id: 'today', label: 'Oggi', icon: CalendarCheck, drop: 'today' },
-  { id: 'tomorrow', label: 'Domani', icon: Sunrise, drop: 'tomorrow' },
-  { id: 'upcoming', label: 'Prossimi 7 giorni', icon: CalendarRange },
-  { id: 'noDue', label: 'Senza scadenza', icon: Inbox },
-  { id: 'waiting', label: 'In attesa', icon: Hourglass },
-  { id: 'scheduled', label: 'Programmati', icon: EyeOff }
+const VIEWS: Array<{ id: ViewId; icon: LucideIcon; drop?: 'today' | 'tomorrow' }> = [
+  { id: 'all', icon: Layers },
+  { id: 'today', icon: CalendarCheck, drop: 'today' },
+  { id: 'tomorrow', icon: Sunrise, drop: 'tomorrow' },
+  { id: 'upcoming', icon: CalendarRange },
+  { id: 'noDue', icon: Inbox },
+  { id: 'waiting', icon: Hourglass },
+  { id: 'scheduled', icon: EyeOff }
 ]
 
 function NavItem({
@@ -87,6 +88,7 @@ export function Sidebar() {
     if (!filter.search) setSearch('')
   }, [filter.search])
 
+  const m = t().sidebar
   const counts = facets?.counts
   const hasFilters = filter.areaId !== undefined || filter.priority !== undefined || !!filter.person || !!filter.search
   const people = facets?.people.filter((p) => p.openCount > 0 || (mainView === 'person' && p.name === person)) ?? []
@@ -106,11 +108,11 @@ export function Sidebar() {
                 e.currentTarget.blur()
               }
             }}
-            placeholder="Cerca  (Ctrl+F)"
+            placeholder={m.search}
             className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-subtle"
           />
           {search && (
-            <button className="text-subtle hover:text-fg" onClick={() => setSearch('')} title="Cancella ricerca">
+            <button className="text-subtle hover:text-fg" onClick={() => setSearch('')} title={m.clearSearch}>
               <X size={14} />
             </button>
           )}
@@ -122,11 +124,11 @@ export function Sidebar() {
           <NavItem
             active={mainView === 'myDay'}
             icon={Sun}
-            label="Il mio giorno"
+            label={m.myDay}
             count={counts?.myDay}
             onClick={() => setMainView('myDay')}
             dropId="drop-myday"
-            hint="Pianifica la giornata. Trascina qui un task per aggiungerlo"
+            hint={m.myDayHint}
             tour="nav-myday"
           />
           <div data-tour="nav-views" className="space-y-0.5">
@@ -135,26 +137,26 @@ export function Sidebar() {
               key={v.id}
               active={mainView === 'list' && view === v.id}
               icon={v.icon}
-              label={v.label}
+              label={m.views[v.id]}
               count={counts?.[v.id]}
               onClick={() => setView(v.id)}
               dropId={v.drop ? `drop-${v.drop}` : undefined}
-              hint={v.drop ? `Trascina qui un task per spostarlo a ${v.label.toLowerCase()}` : undefined}
+              hint={v.drop ? m.dropHint(m.views[v.id]) : undefined}
             />
           ))}
           </div>
           <NavItem
             active={mainView === 'update'}
             icon={Zap}
-            label="Update"
+            label={m.update}
             onClick={() => setMainView('update')}
-            hint="Riepilogo (Ctrl+U)"
+            hint={m.updateHint}
             tour="nav-update"
           />
-          <NavItem active={mainView === 'history'} icon={History} label="Completati" onClick={() => setMainView('history')} />
+          <NavItem active={mainView === 'history'} icon={History} label={m.completed} onClick={() => setMainView('history')} />
         </div>
 
-        <div className="section-label" data-tour="nav-areas">Aree</div>
+        <div className="section-label" data-tour="nav-areas">{m.areas}</div>
         <div className="space-y-0.5">
           {facets?.areas.map((a) => (
             <button
@@ -174,13 +176,13 @@ export function Sidebar() {
 
         {people.length > 0 && (
           <>
-            <div className="section-label" data-tour="nav-people">Persone</div>
+            <div className="section-label" data-tour="nav-people">{m.people}</div>
             <div className="space-y-0.5">
               {people.map((p) => (
                 <button
                   key={p.name}
                   onClick={() => openPerson(p.name)}
-                  title={`Tutto ciò che riguarda ${p.name}`}
+                  title={m.personHint(p.name)}
                   className={cn(
                     'flex w-full items-center gap-2.5 rounded-md px-3 py-1.5 text-left text-sm',
                     mainView === 'person' && person === p.name ? 'bg-accent-soft font-medium text-accent' : 'hover:bg-surface-2'
@@ -195,7 +197,7 @@ export function Sidebar() {
           </>
         )}
 
-        <div className="section-label">Priorità</div>
+        <div className="section-label">{m.priority}</div>
         <div className="flex gap-1 px-2">
           {PRIORITIES.map((p) => (
             <button
@@ -214,7 +216,7 @@ export function Sidebar() {
 
         {hasFilters && (
           <button className="btn-ghost mx-1 mt-3 text-xs" onClick={clearFilters}>
-            <FilterX size={14} /> Rimuovi filtri
+            <FilterX size={14} /> {m.clearFilters}
           </button>
         )}
       </nav>
@@ -223,11 +225,11 @@ export function Sidebar() {
         <NavItem
           active={mainView === 'settings'}
           icon={SettingsIcon}
-          label="Impostazioni"
+          label={m.settings}
           onClick={() => setMainView('settings')}
         />
         <div className="flex items-center gap-1.5 px-3 pt-1 text-[11px] text-subtle">
-          <CalendarDays size={11} /> Ctrl+N nuovo · Ctrl+U update
+          <CalendarDays size={11} /> {m.shortcuts}
         </div>
       </div>
     </aside>

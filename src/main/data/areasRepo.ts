@@ -1,3 +1,4 @@
+import { t } from '../../core/i18n'
 import type { Area } from '../../core/types'
 import type { DB } from './db'
 import { NotFoundError, ValidationError } from './errors'
@@ -49,9 +50,9 @@ export class AreasRepo {
 
   upsert(input: AreaInput): Area {
     const name = input.name.trim()
-    if (!name) throw new ValidationError("Il nome dell'area è obbligatorio")
+    if (!name) throw new ValidationError(t().errors.areaNameRequired)
     const clash = this.findByName(name)
-    if (clash && clash.id !== input.id) throw new ValidationError(`Esiste già un'area "${clash.name}"`)
+    if (clash && clash.id !== input.id) throw new ValidationError(t().errors.areaExists(clash.name))
 
     if (input.id === undefined) {
       const { n, maxOrder } = this.db
@@ -64,7 +65,7 @@ export class AreasRepo {
     }
 
     const current = this.get(input.id)
-    if (!current) throw new NotFoundError('Area non trovata')
+    if (!current) throw new NotFoundError(t().errors.areaNotFound)
     this.db
       .prepare('UPDATE areas SET name = ?, color = ?, archived = ? WHERE id = ?')
       .run(

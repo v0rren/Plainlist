@@ -1,3 +1,4 @@
+import { t } from '@core/i18n'
 import type { PersonOverview } from '@core/person'
 import { personToText } from '@core/text'
 import { Copy, Hourglass } from 'lucide-react'
@@ -35,6 +36,8 @@ export function PersonView({ name }: { name: string }) {
 
   if (!data) return null
   const empty = data.counts.open === 0 && data.recentDone.length === 0
+  const m = t().person
+  const reopen = t().common.reopen
 
   return (
     <div className="max-w-4xl space-y-5 px-6 py-5">
@@ -45,25 +48,25 @@ export function PersonView({ name }: { name: string }) {
         <div className="flex-1">
           <h1 className="text-xl font-semibold">{name}</h1>
           <p className="text-sm text-muted">
-            {data.counts.open} aperti · {data.counts.waiting} in attesa
-            {data.counts.overdue > 0 && <span className="text-danger"> · {data.counts.overdue} scaduti</span>}
+            {m.counts(data.counts.open, data.counts.waiting)}
+            {data.counts.overdue > 0 && <span className="text-danger">{m.overdue(data.counts.overdue)}</span>}
           </p>
         </div>
         <button
           className="btn"
-          onClick={() => void copyText(personToText(data), `Riepilogo per il 1:1 con ${name} copiato`)}
-          title="Copia un riepilogo da incollare negli appunti del 1:1"
+          onClick={() => void copyText(personToText(data), m.copied(name))}
+          title={m.copyHint}
         >
-          <Copy size={14} /> Copia per il 1:1
+          <Copy size={14} /> {m.copy}
         </button>
       </div>
 
-      {empty && <p className="text-muted">Nessun task con {name}. Scrivi @{name.replace(/ /g, '_')} nel campo in alto per collegarne uno.</p>}
+      {empty && <p className="text-muted">{m.empty(name, name.replace(/ /g, '_'))}</p>}
 
       {data.waiting.length > 0 && (
         <section className="rounded-lg border border-warning/30 bg-warning-soft/40 p-3">
           <h2 className="mb-1 flex items-center gap-1.5 px-2 text-xs font-semibold tracking-wide text-warning uppercase">
-            <Hourglass size={13} /> In attesa da {name}
+            <Hourglass size={13} /> {m.waitingOn(name)}
             <span className="font-normal text-subtle">{data.waiting.length}</span>
           </h2>
           <div className="space-y-px">
@@ -90,11 +93,11 @@ export function PersonView({ name }: { name: string }) {
       {data.recentDone.length > 0 && (
         <section>
           <h2 className="mb-1 px-2 text-xs font-semibold tracking-wide text-success uppercase">
-            Completati negli ultimi 14 giorni <span className="font-normal text-subtle">{data.recentDone.length}</span>
+            {m.recentlyDone} <span className="font-normal text-subtle">{data.recentDone.length}</span>
           </h2>
           {data.recentDone.map((t) => (
             <div key={t.id} className="flex items-center gap-3 rounded-md px-3 py-1.5">
-              <Checkbox checked onChange={() => void taskActions.complete(t.id, false)} label="Riapri" />
+              <Checkbox checked onChange={() => void taskActions.complete(t.id, false)} label={reopen} />
               <span className="truncate text-subtle">{t.title}</span>
             </div>
           ))}

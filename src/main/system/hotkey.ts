@@ -1,4 +1,5 @@
 import { globalShortcut } from 'electron'
+import { t } from '../../core/i18n'
 
 export class GlobalHotkey {
   private current: string | null = null
@@ -25,7 +26,7 @@ export class GlobalHotkey {
       return undefined
     }
     if (previous) this.restore(previous)
-    return `La scorciatoia ${accelerator.replace('Control', 'Ctrl')} non è disponibile: è già usata da un altro programma o non è valida.`
+    return t().errors.hotkeyUnavailable(accelerator.replace('Control', 'Ctrl'))
   }
 
   clear(): void {

@@ -1,4 +1,5 @@
 import type { GroupId, TaskGroup } from '@core/grouping'
+import { setLanguage, t } from '@core/i18n'
 import type { FacetsResponse, ListFilter, ViewId } from '@shared/ipc'
 import type { Priority, RescheduleTarget, Settings, Task } from '@shared/types'
 import { create } from 'zustand'
@@ -87,6 +88,8 @@ export const useStore = create<State>((set, get) => ({
 
   async init() {
     const init = await api.invoke('app:init')
+    setLanguage(init.settings.language)
+    document.documentElement.lang = init.settings.language
     set({ settings: init.settings, facets: init.facets, today: init.today, version: init.version })
     await get().refresh()
     set({ ready: true, tour: init.settings.tourCompleted ? null : 'welcome' })
@@ -168,7 +171,20 @@ export const useStore = create<State>((set, get) => ({
   },
 
   setSettings(settings) {
+    const previous = get().settings?.language
+    setLanguage(settings.language)
+    document.documentElement.lang = settings.language
     set({ settings })
+    if (previous && previous !== settings.language) {
+      // Gruppi e riepiloghi arrivano già tradotti dal main: vanno richiesti di nuovo.
+      void get().refresh()
+      get().toast({
+        kind: 'info',
+        message: t().settings.languageChanged,
+        timeoutMs: 10000,
+        action: { label: t().settings.restart, run: () => void api.invoke('app:relaunch') }
+      })
+    }
   },
 
   setToday(today) {
@@ -213,18 +229,18 @@ export const taskActions = {
     if (state.selectedId === task.id) state.select(null, false)
     state.toast({
       kind: 'undo',
-      message: `"${task.title}" eliminato`,
+      message: t().app.deleted(task.title),
       timeoutMs: (state.settings?.undoSeconds ?? 6) * 1000,
-      action: { label: 'Annulla', run: () => void run(() => api.invoke('tasks:restore', { id: task.id })) }
+      action: { label: t().common.undo, run: () => void run(() => api.invoke('tasks:restore', { id: task.id })) }
     })
   }
 }
 
-export async function copyText(text: string, message = 'Copiato negli appunti'): Promise<void> {
+export async function copyText(text: string, message = t().common.copied): Promise<void> {
   try {
     await navigator.clipboard.writeText(text)
     useStore.getState().toast({ kind: 'info', message, timeoutMs: 2500 })
   } catch (err) {
-    useStore.getState().toast({ kind: 'error', message: `Impossibile copiare: ${errorMessage(err)}` })
+    useStore.getState().toast({ kind: 'error', message: t().common.copyFailed(errorMessage(err)) })
   }
 }

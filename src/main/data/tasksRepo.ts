@@ -6,6 +6,7 @@ import {
   toRRule,
   type Recurrence
 } from '../../core/recurrence'
+import { t } from '../../core/i18n'
 import { rescheduleDate } from '../../core/reschedule'
 import { isValidDateKey, isValidTimeKey, parseDateKey, toDueAt, todayKey } from '../../core/time'
 import type {
@@ -110,29 +111,29 @@ function normalizeNotes(notes: string | null | undefined): string | null {
 
 function requireTitle(title: string | undefined): string {
   const trimmed = title?.trim().replace(/\s+/g, ' ')
-  if (!trimmed) throw new ValidationError('Il titolo è obbligatorio')
+  if (!trimmed) throw new ValidationError(t().errors.titleRequired)
   return trimmed
 }
 
 function checkPriority(priority: unknown): Priority {
-  if (priority !== 1 && priority !== 2 && priority !== 3) throw new ValidationError('Priorità non valida')
+  if (priority !== 1 && priority !== 2 && priority !== 3) throw new ValidationError(t().errors.invalidPriority)
   return priority
 }
 
 function checkDue(date: string | null, time: string | null): void {
-  if (date !== null && !isValidDateKey(date)) throw new ValidationError(`Data non valida: ${date}`)
-  if (time !== null && !isValidTimeKey(time)) throw new ValidationError(`Orario non valido: ${time}`)
-  if (time !== null && date === null) throw new ValidationError("Per impostare un orario serve una data")
+  if (date !== null && !isValidDateKey(date)) throw new ValidationError(t().errors.invalidDate(date))
+  if (time !== null && !isValidTimeKey(time)) throw new ValidationError(t().errors.invalidTime(time))
+  if (time !== null && date === null) throw new ValidationError(t().errors.timeNeedsDate)
 }
 
 function checkStart(date: string | null): string | null {
-  if (date !== null && !isValidDateKey(date)) throw new ValidationError(`Data di inizio non valida: ${date}`)
+  if (date !== null && !isValidDateKey(date)) throw new ValidationError(t().errors.invalidStartDate(date))
   return date
 }
 
 function checkEstimate(minutes: number | null): number | null {
   if (minutes === null) return null
-  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 7 * 24 * 60) throw new ValidationError('Stima non valida')
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 7 * 24 * 60) throw new ValidationError(t().errors.invalidEstimate)
   return minutes
 }
 
@@ -185,7 +186,7 @@ export class TasksRepo {
 
   private resolveAreaId(areaId: number | null | undefined, areaName: string | null | undefined): number | null {
     if (areaId !== undefined && areaId !== null) {
-      if (!this.areas.get(areaId)) throw new ValidationError('Area inesistente')
+      if (!this.areas.get(areaId)) throw new ValidationError(t().errors.areaMissing)
       return areaId
     }
     if (areaId === undefined && areaName?.trim()) return this.areas.findOrCreate(areaName).id
@@ -199,7 +200,7 @@ export class TasksRepo {
 
   private require(id: number): Task {
     const task = this.get(id)
-    if (!task) throw new NotFoundError('Task non trovato')
+    if (!task) throw new NotFoundError(t().errors.taskNotFound)
     return task
   }
 
@@ -241,7 +242,7 @@ export class TasksRepo {
     checkDue(dueDate, dueTime)
     const startDate = checkStart(input.startDate ?? null)
     const estimateMin = checkEstimate(input.estimateMin ?? null)
-    if (input.parentId != null && !this.get(input.parentId)) throw new ValidationError('Task padre inesistente')
+    if (input.parentId != null && !this.get(input.parentId)) throw new ValidationError(t().errors.parentMissing)
 
     return this.db.transaction(() => {
       const areaId = this.resolveAreaId(input.areaId, input.areaName)
@@ -513,7 +514,7 @@ export class TasksRepo {
   restore(id: number): Task {
     return this.db.transaction(() => {
       const info = this.db.prepare('UPDATE tasks SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL').run(id)
-      if (info.changes === 0) throw new NotFoundError('Nessun task eliminato da ripristinare')
+      if (info.changes === 0) throw new NotFoundError(t().errors.nothingToRestore)
       this.addEvent(id, 'restored', null, this.nowIso())
       return this.get(id)!
     })()

@@ -1,6 +1,8 @@
 import { TZDate } from '@date-fns/tz'
 import { format } from 'date-fns'
+import { enGB } from 'date-fns/locale/en-GB'
 import { it } from 'date-fns/locale/it'
+import { getLanguage, t } from './i18n'
 
 export const TIME_ZONE = 'Europe/Rome'
 
@@ -127,22 +129,30 @@ function tzDateOf(key: DateKey): TZDate {
   return new TZDate(year, month - 1, day, 12, 0, TIME_ZONE)
 }
 
+function dateLocale() {
+  return getLanguage() === 'en' ? enGB : it
+}
+
 /** "ven 25 set", con l'anno se diverso da quello di riferimento. */
 export function formatDateShort(key: DateKey, referenceToday?: DateKey): string {
   const sameYear = !referenceToday || parseDateKey(key).year === parseDateKey(referenceToday).year
-  return format(tzDateOf(key), sameYear ? 'EEE d MMM' : 'EEE d MMM yyyy', { locale: it })
+  return format(tzDateOf(key), sameYear ? 'EEE d MMM' : 'EEE d MMM yyyy', { locale: dateLocale() })
 }
 
 /** "venerdì 25 settembre". */
 export function formatDateLong(key: DateKey, referenceToday?: DateKey): string {
   const sameYear = !referenceToday || parseDateKey(key).year === parseDateKey(referenceToday).year
-  return format(tzDateOf(key), sameYear ? 'EEEE d MMMM' : 'EEEE d MMMM yyyy', { locale: it })
+  return format(tzDateOf(key), sameYear ? 'EEEE d MMMM' : 'EEEE d MMMM yyyy', { locale: dateLocale() })
 }
 
-/** "oggi", "domani", "ieri" oppure la data breve; con l'orario se presente. */
+/** "oggi", "domani", "ieri" (nella lingua corrente) oppure la data breve; con l'orario se presente. */
 export function formatDue(date: DateKey, time: TimeKey | null, today: DateKey): string {
   const delta = diffDays(date, today)
+  const { dates } = t()
   const day =
-    delta === 0 ? 'oggi' : delta === 1 ? 'domani' : delta === -1 ? 'ieri' : formatDateShort(date, today)
+    delta === 0 ? dates.today
+    : delta === 1 ? dates.tomorrow
+    : delta === -1 ? dates.yesterday
+    : formatDateShort(date, today)
   return time ? `${day} ${time}` : day
 }

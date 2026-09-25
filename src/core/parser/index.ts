@@ -1,15 +1,19 @@
+import { getLanguage, t, type Language } from '../i18n'
 import { firstOccurrence, nextOccurrence, type Recurrence } from '../recurrence'
 import { nowTimeKey, todayKey, addDays, type DateKey, type TimeKey } from '../time'
 import type { Priority } from '../types'
 import { DATE_PREPOSITIONS, MONTHS, lookup, normalize } from './lexicon'
 import { DEFAULT_RULES } from './rules'
 import { DAY_RE, resolveDayOfMonth } from './rules/dayOfMonth'
+import { EN_RULES } from './rules/en'
+import { EN_DATE_PREPOSITIONS, EN_MONTHS } from './rules/en/lexicon'
 import { tokenize, type Token } from './tokenizer'
 import { wordAt, type AnyRule, type RuleContext, type RuleKind, type RuleMatch } from './types'
 
 export type { AnyRule, Rule, RuleContext, RuleKind, RuleMatch } from './types'
 export { defineRule, wordAt } from './types'
 export { DEFAULT_RULES } from './rules'
+export { EN_RULES } from './rules/en'
 export { formatEstimate } from './rules/estimate'
 
 export interface ParsedName {
@@ -48,6 +52,8 @@ export interface ParseOptions {
   knownAreas?: string[]
   knownPeople?: string[]
   rules?: AnyRule[]
+  /** Lingua delle parole riconosciute; senza, quella corrente dell'app. */
+  language?: Language
 }
 
 interface Candidate {
@@ -59,31 +65,62 @@ interface Candidate {
 
 const MAX_PREPOSITIONS = 2
 
-const DUPLICATE_MESSAGE: Partial<Record<RuleKind, string>> = {
-  date: 'Più di una data, ignorata',
-  time: 'Più di un orario, ignorato',
-  priority: 'Più di una priorità, ignorata',
-  area: "Più di un'area, ignorata",
-  recurrence: 'Più di una ripetizione, ignorata',
-  start: 'Più di una data di inizio, ignorata',
-  estimate: 'Più di una stima, ignorata'
+/** Ciò che cambia da una lingua all'altra oltre alle regole. */
+interface LanguageConfig {
+  rules: AnyRule[]
+  /** Parole davanti a una data che vengono assorbite ("entro venerdì", "by friday"). */
+  datePrepositions: Set<string>
+  /** Sequenze che introducono la data di inizio ("a partire da", "da", "starting from"…), le più lunghe prima. */
+  startLeads: string[][]
+  /** Dopo queste parole basta il numero del giorno come data di inizio ("dal 15"). */
+  startDayLeads: Set<string>
+  months: Record<string, number>
+  /** Dopo queste parole il nome della persona resta nel titolo ("Budget da Marco", "Call with Marco"). */
+  linkingWords: Set<string>
+  /** Congiunzioni tra persone: "@Marco e @Anna" segue la sorte della prima. */
+  listWords: Set<string>
 }
 
-const START_WORDS = new Set(['da', 'dal', "dall'", 'dalla'])
+const IT_START_WORDS = ['da', 'dal', "dall'", 'dalla']
 
-/** Dopo queste parole il nome della persona resta nel titolo ("Budget da Marco", "Scrivere a Marco"). */
-const LINKING_WORDS = new Set([
-  'a', 'ad', 'al', 'allo', 'alla', "all'", 'ai', 'agli', 'alle',
-  'da', 'dal', 'dallo', 'dalla', "dall'", 'dai', 'dagli', 'dalle',
-  'di', 'del', 'dello', 'della', "dell'", 'dei', 'degli', 'delle',
-  'con', 'col', 'per', 'su', 'sul', 'tra', 'fra', 'verso', 'insieme'
-])
+const LANGUAGES: Record<Language, LanguageConfig> = {
+  it: {
+    rules: DEFAULT_RULES,
+    datePrepositions: DATE_PREPOSITIONS,
+    startLeads: [...IT_START_WORDS.map((w) => ['a', 'partire', w]), ...IT_START_WORDS.map((w) => [w])],
+    startDayLeads: new Set(['dal', "dall'"]),
+    months: MONTHS,
+    linkingWords: new Set([
+      'a', 'ad', 'al', 'allo', 'alla', "all'", 'ai', 'agli', 'alle',
+      'da', 'dal', 'dallo', 'dalla', "dall'", 'dai', 'dagli', 'dalle',
+      'di', 'del', 'dello', 'della', "dell'", 'dei', 'degli', 'delle',
+      'con', 'col', 'per', 'su', 'sul', 'tra', 'fra', 'verso', 'insieme'
+    ]),
+    listWords: new Set(['e', 'ed'])
+  },
+  en: {
+    rules: EN_RULES,
+    datePrepositions: EN_DATE_PREPOSITIONS,
+    startLeads: [['starting', 'from'], ['starting', 'on'], ['as', 'of'], ['starting'], ['from']],
+    startDayLeads: new Set(),
+    months: EN_MONTHS,
+    linkingWords: new Set(['to', 'with', 'from', 'for', 'by', 'about', 'of', 'at', 'on', 'via', 'cc']),
+    listWords: new Set(['and', '&'])
+  }
+}
 
 function totalLength(c: Candidate): number {
   return c.prefix + c.match.length
 }
 
-function matchAt(tokens: Token[], i: number, ctx: RuleContext, rules: AnyRule[], depth = 0): Candidate | null {
+function matchAt(
+  tokens: Token[],
+  i: number,
+  ctx: RuleContext,
+  rules: AnyRule[],
+  lang: LanguageConfig,
+  depth = 0
+): Candidate | null {
   let best: Candidate | null = null
   for (const rule of rules) {
     const match = rule.match(tokens, i, ctx) as RuleMatch<RuleKind> | null
@@ -92,13 +129,13 @@ function matchAt(tokens: Token[], i: number, ctx: RuleContext, rules: AnyRule[],
     }
   }
   if (depth === 0) {
-    const start = matchStart(tokens, i, ctx, rules)
+    const start = matchStart(tokens, i, ctx, rules, lang)
     if (start && (!best || totalLength(start) > totalLength(best))) best = start
   }
   const w = wordAt(tokens, i)
-  if (w !== undefined && DATE_PREPOSITIONS.has(w) && depth < MAX_PREPOSITIONS) {
+  if (w !== undefined && lang.datePrepositions.has(w) && depth < MAX_PREPOSITIONS) {
     const dateRules = rules.filter((r) => r.kind === 'date')
-    const inner = matchAt(tokens, i + 1, ctx, dateRules, depth + 1)
+    const inner = matchAt(tokens, i + 1, ctx, dateRules, lang, depth + 1)
     if (inner && (!best || totalLength(inner) + 1 > totalLength(best))) {
       best = { ...inner, prefix: inner.prefix + 1 }
     }
@@ -106,23 +143,27 @@ function matchAt(tokens: Token[], i: number, ctx: RuleContext, rules: AnyRule[],
   return best
 }
 
-/** "da lunedì", "dal 15/10", "dal 15", "a partire da domani": una data introdotta come inizio. */
-function matchStart(tokens: Token[], i: number, ctx: RuleContext, rules: AnyRule[]): Candidate | null {
-  let lead: number
-  if (wordAt(tokens, i) === 'a' && wordAt(tokens, i + 1) === 'partire' && START_WORDS.has(wordAt(tokens, i + 2) ?? '')) {
-    lead = 3
-  } else if (START_WORDS.has(wordAt(tokens, i) ?? '')) {
-    lead = 1
-  } else return null
+/** "da lunedì", "dal 15/10", "dal 15", "a partire da domani", "starting monday": una data introdotta come inizio. */
+function matchStart(
+  tokens: Token[],
+  i: number,
+  ctx: RuleContext,
+  rules: AnyRule[],
+  lang: LanguageConfig
+): Candidate | null {
+  const dateRules = rules.filter((r) => r.kind === 'date')
+  for (const words of lang.startLeads) {
+    if (!words.every((word, k) => wordAt(tokens, i + k) === word)) continue
+    const lead = words.length
 
-  const inner = matchAt(tokens, i + lead, ctx, rules.filter((r) => r.kind === 'date'), 1)
-  if (inner) return { kind: 'start', match: { ...inner.match, length: lead + totalLength(inner) }, prefix: 0 }
+    const inner = matchAt(tokens, i + lead, ctx, dateRules, lang, 1)
+    if (inner) return { kind: 'start', match: { ...inner.match, length: lead + totalLength(inner) }, prefix: 0 }
 
-  const leadWord = wordAt(tokens, i + lead - 1)
-  const day = DAY_RE.exec(wordAt(tokens, i + lead) ?? '')
-  if ((leadWord === 'dal' || leadWord === "dall'") && day && lookup(MONTHS, wordAt(tokens, i + lead + 1)) === undefined) {
-    const value = resolveDayOfMonth(Number(day[1]), ctx.today)
-    if (value) return { kind: 'start', match: { length: lead + 1, status: 'ok', value }, prefix: 0 }
+    const day = DAY_RE.exec(wordAt(tokens, i + lead) ?? '')
+    if (lang.startDayLeads.has(words[lead - 1]) && day && lookup(lang.months, wordAt(tokens, i + lead + 1)) === undefined) {
+      const value = resolveDayOfMonth(Number(day[1]), ctx.today)
+      if (value) return { kind: 'start', match: { length: lead + 1, status: 'ok', value }, prefix: 0 }
+    }
   }
   return null
 }
@@ -160,7 +201,15 @@ function replaceRanges(text: string, ranges: Array<[number, number, string]>): s
 
 export function parseQuickInput(text: string, options: ParseOptions = {}): ParseResult {
   const now = options.now ?? new Date()
-  const rules = options.rules ?? DEFAULT_RULES
+  const language = options.language ?? getLanguage()
+  const lang = LANGUAGES[language]
+  const rules = options.rules ?? lang.rules
+  const messages = t(language).parser
+  // Le regole restituiscono chiavi ("invalidDate"); un testo libero passa così com'è.
+  const message = (key: string): string => {
+    const found = (messages as Record<string, unknown>)[key]
+    return typeof found === 'string' ? found : key
+  }
   const ctx: RuleContext = { today: todayKey(now), nowTime: nowTimeKey(now) }
   const tokens = tokenize(text)
 
@@ -196,7 +245,7 @@ export function parseQuickInput(text: string, options: ParseOptions = {}): Parse
       i++
       continue
     }
-    const candidate = matchAt(tokens, i, ctx, rules)
+    const candidate = matchAt(tokens, i, ctx, rules, lang)
     if (!candidate) {
       i++
       continue
@@ -211,10 +260,10 @@ export function parseQuickInput(text: string, options: ParseOptions = {}): Parse
 
     if (match.status === 'invalid') {
       spans.push({ start, end, text: ruleText, kind, status: 'invalid' })
-      warnings.push(`${match.message}: ${ruleText}`)
+      warnings.push(`${message(match.message)}: ${ruleText}`)
     } else if (isSet(kind)) {
       spans.push({ start, end, text: ruleText, kind, status: 'ambiguous' })
-      warnings.push(`${DUPLICATE_MESSAGE[kind]}: ${ruleText}`)
+      warnings.push(`${messages.duplicate[kind]}: ${ruleText}`)
     } else {
       const value = match.value
       switch (kind) {
@@ -251,7 +300,7 @@ export function parseQuickInput(text: string, options: ParseOptions = {}): Parse
       }
       let consumeStart = tokens[i].start
       const before = tokens[i - 1]
-      const listed = kind === 'person' && before !== undefined && (before.word === 'e' || before.word === 'ed')
+      const listed = kind === 'person' && before !== undefined && lang.listWords.has(before.word)
         ? personMode.get(i - 2)
         : undefined
       const linked =
@@ -260,14 +309,14 @@ export function parseQuickInput(text: string, options: ParseOptions = {}): Parse
           kind === 'person' &&
           before !== undefined &&
           !before.quoted &&
-          LINKING_WORDS.has(before.word) &&
+          lang.linkingWords.has(before.word) &&
           !consumed.some(([s, e]) => before.start >= s && before.start < e))
       if (listed === 'removed') consumeStart = before.start
       if (linked) inlinePeople.push({ start: consumeStart, end, name: value as string })
       else consumed.push([consumeStart, end])
       if (kind === 'person') personMode.set(i, linked ? 'inline' : 'removed')
       spans.push({ start: consumeStart, end, text: text.slice(consumeStart, end), kind, status: 'ok' })
-      if (match.warning) warnings.push(`${match.warning}: ${ruleText}`)
+      if (match.warning) warnings.push(`${message(match.warning)}: ${ruleText}`)
     }
     i = ruleEnd + 1
   }
@@ -280,7 +329,7 @@ export function parseQuickInput(text: string, options: ParseOptions = {}): Parse
     due = { date: first, time }
   } else if (time !== null) due = { date: time > ctx.nowTime ? ctx.today : addDays(ctx.today, 1), time }
 
-  if (startDate !== null && due !== null && startDate > due.date) warnings.push('La data di inizio è dopo la scadenza')
+  if (startDate !== null && due !== null && startDate > due.date) warnings.push(messages.startAfterDue)
 
   const personName = (raw: string): string =>
     canonical(raw, options.knownPeople ?? [], (n) => n.split(' ').map(capitalize).join(' ')).name

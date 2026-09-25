@@ -1,6 +1,6 @@
 import { defineRule, wordAt } from '../types'
 
-const DECIMAL_RE = /^~(\d+(?:[.,]\d+)?)(m|min|h|ore|ora)$/
+const DECIMAL_RE = /^~(\d+(?:[.,]\d+)?)(m|min|mins|h|hr|hrs|ore|ora)$/
 const HOURS_MINUTES_RE = /^~(\d{1,2})h(\d{1,2})$/
 const BARE_RE = /^~\d+(?:[.,]\d+)?$/
 const MAX_MINUTES = 7 * 24 * 60
@@ -21,10 +21,10 @@ export const estimate = defineRule({
       const n = Number(dec[1].replace(',', '.'))
       minutes = Math.round(dec[2].startsWith('m') ? n : n * 60)
     } else if (BARE_RE.test(w)) {
-      return { length: 1, status: 'invalid', message: 'Stima senza unità (usa m oppure h)' }
+      return { length: 1, status: 'invalid', message: 'estimateNoUnit' }
     } else return null
 
-    if (minutes < 1 || minutes > MAX_MINUTES) return { length: 1, status: 'invalid', message: 'Stima non valida' }
+    if (minutes < 1 || minutes > MAX_MINUTES) return { length: 1, status: 'invalid', message: 'invalidEstimate' }
     return { length: 1, status: 'ok', value: minutes }
   }
 })
