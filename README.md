@@ -2,9 +2,7 @@
 
 A to-do app for Windows that works entirely offline. You type a task the way you would say it, for example `Send quote to @Marco friday at 12 #work !high`, and Plainlist works out the date, time, priority, area and people. The app is available in English and Italian.
 
-[![Plainlist trailer: click to watch](docs/trailer/poster.png)](docs/trailer/plainlist-trailer.mp4)
-
-[Watch the 30-second trailer](docs/trailer/plainlist-trailer.mp4)
+https://github.com/user-attachments/assets/93c82ae0-0821-4a2f-94f8-a764f61325e4
 
 ## Features
 
