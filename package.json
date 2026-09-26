@@ -33,6 +33,7 @@
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "lucide-react": "^1.48.0",
+    "mp4-muxer": "^5.2.2",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "tailwindcss": "^4.3.3",

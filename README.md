@@ -2,7 +2,9 @@
 
 A to-do app for Windows that works entirely offline. You type a task the way you would say it, for example `Send quote to @Marco friday at 12 #work !high`, and Plainlist works out the date, time, priority, area and people. The app is available in English and Italian.
 
-![All tasks, grouped by due date](docs/screenshots/list.png)
+[![Plainlist trailer: click to watch](docs/trailer/poster.png)](docs/trailer/plainlist-trailer.mp4)
+
+[Watch the 30-second trailer](docs/trailer/plainlist-trailer.mp4)
 
 ## Features
 
@@ -180,6 +182,7 @@ npm run dev
 | `npm run dist` | Builds and creates the installer in `dist/` |
 | `node scripts/make-icons.mjs` | Regenerates `resources/icon.ico` and `resources/icon.png` |
 | `npx electron scripts/screenshots.cjs [en\|it]` | Regenerates the README screenshots after `npm run build`, with demo data in a temporary folder |
+| `npx electron scripts/trailer/make.cjs --mode=video` | Renders the trailer to `docs/trailer/plainlist-trailer.mp4` (under 10 MB). With `--mode=preview --times=3.4,13.4` it saves single frames to `out/trailer-preview/` |
 
 ### Architecture
 

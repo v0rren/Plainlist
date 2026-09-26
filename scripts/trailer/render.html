@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Plainlist trailer</title>
+    <style>
+      html, body { margin: 0; background: #000; }
+      /* Forza il caricamento dei pesi usati dal canvas. */
+      .preload { font-family: 'Segoe UI Variable Display'; position: absolute; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <span class="preload" style="font-weight: 500">a</span>
+    <span class="preload" style="font-weight: 600">a</span>
+    <span class="preload" style="font-weight: 700">a</span>
+    <span class="preload" style="font-weight: 800">a</span>
+    <canvas id="c" width="1920" height="1080"></canvas>
+    <script src="icons.js"></script>
+    <script src="trailer.js"></script>
+    <script src="audio.js"></script>
+    <script src="../../node_modules/mp4-muxer/build/mp4-muxer.js"></script>
+    <script src="render.js"></script>
+  </body>
+</html>
