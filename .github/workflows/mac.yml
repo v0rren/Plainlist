@@ -32,7 +32,7 @@ jobs:
       - run: npx electron-builder --mac --arm64 --publish never
 
       # Il .dmg si carica subito, così resta scaricabile anche se un controllo successivo fallisce.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: Plainlist-mac
           path: dist/*.dmg
@@ -52,7 +52,7 @@ jobs:
         run: |
           if ! ELECTRON_RUN_AS_NODE=1 "$APP/Contents/MacOS/Plainlist" -e \
             "const D = require(process.argv[1] + '/node_modules/better-sqlite3'); console.log('SQLite', new D(':memory:').prepare('select sqlite_version() as v').get().v)" \
-            "$APP/Contents/Resources/app.asar" > check.log 2>&1; then
+            "$GITHUB_WORKSPACE/$APP/Contents/Resources/app.asar" > check.log 2>&1; then
             echo "::error title=SQLite::$(tr '\n' ' ' < check.log | tail -c 1800)"
             exit 1
           fi
