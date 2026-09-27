@@ -3,6 +3,9 @@
 const plural = (n: number, one: string, many: string): string => (n === 1 ? one : many)
 
 export const it = {
+  /** Nomi dei tasti su Windows (su Mac si usano i simboli ⌘ ⇧ ↩ ⌫). */
+  keys: { Enter: 'Invio', Delete: 'Canc', Space: 'Spazio' },
+
   common: {
     add: 'Aggiungi',
     cancel: 'Annulla',
@@ -202,7 +205,7 @@ export const it = {
   },
 
   sidebar: {
-    search: 'Cerca  (Ctrl+F)',
+    search: (keys: string) => `Cerca  (${keys})`,
     clearSearch: 'Cancella ricerca',
     myDay: 'Il mio giorno',
     myDayHint: 'Pianifica la giornata. Trascina qui un task per aggiungerlo',
@@ -217,7 +220,7 @@ export const it = {
     },
     dropHint: (view: string) => `Trascina qui un task per spostarlo a ${view.toLowerCase()}`,
     update: 'Update',
-    updateHint: 'Riepilogo (Ctrl+U)',
+    updateHint: (keys: string) => `Riepilogo (${keys})`,
     completed: 'Completati',
     areas: 'Aree',
     people: 'Persone',
@@ -225,7 +228,7 @@ export const it = {
     priority: 'Priorità',
     clearFilters: 'Rimuovi filtri',
     settings: 'Impostazioni',
-    shortcuts: 'Ctrl+N nuovo · Ctrl+U update'
+    shortcuts: (newKeys: string, updateKeys: string) => `${newKeys} nuovo · ${updateKeys} update`
   },
 
   list: {
@@ -242,16 +245,16 @@ export const it = {
     scheduledHint: 'Task nascosti fino a una data ("da lunedì", "dal 15/10"). Ricompaiono da soli quel giorno.',
     removeFilter: 'Rimuovi filtro',
     newTask: 'Nuovo',
-    newTaskHint: 'Nuovo task con tutti i campi (Ctrl+Shift+N)',
+    newTaskHint: (keys: string) => `Nuovo task con tutti i campi (${keys})`,
     empty: 'Niente da mostrare qui.',
     emptyFiltered: 'Prova a rimuovere i filtri.',
-    emptyHint: 'Scrivi un task nel campo in alto e premi Invio.',
+    emptyHint: (enter: string) => `Scrivi un task nel campo in alto e premi ${enter}.`,
     listLabel: 'Task'
   },
 
   quick: {
     placeholder: 'Cosa devi fare? es. Mandare preventivo @Marco venerdì alle 12 #lavoro !alta',
-    addHint: 'Aggiungi (Invio)',
+    addHint: (keys: string) => `Aggiungi (${keys})`,
     missingTitle: 'Titolo mancante',
     visibleFrom: (date: string) => `visibile dal ${date}`,
     isNew: '(nuova)',
@@ -265,7 +268,7 @@ export const it = {
     from: (date: string) => `dal ${date}`,
     toTomorrow: 'Rimanda a domani',
     toNextWeek: 'Rimanda alla settimana prossima',
-    deleteHint: 'Elimina (Canc)'
+    deleteHint: (keys: string) => `Elimina (${keys})`
   },
 
   detail: {
@@ -323,8 +326,7 @@ export const it = {
   },
 
   newTask: {
-    title: 'Nuovo task',
-    saveHint: 'Ctrl+Invio'
+    title: 'Nuovo task'
   },
 
   myDay: {
@@ -400,8 +402,10 @@ export const it = {
     restart: 'Riavvia',
     autostart: 'Avvia con Windows',
     autostartHint: "All'accesso l'app parte ridotta nell'area di notifica",
+    autostartMac: "Apri all'accesso",
+    autostartHintMac: "All'accesso l'app parte nascosta, con l'icona nella barra dei menu",
     theme: 'Tema',
-    themes: { system: 'Come Windows', light: 'Chiaro', dark: 'Scuro' },
+    themes: { system: 'Come Windows', systemMac: 'Come macOS', light: 'Chiaro', dark: 'Scuro' },
     defaultArea: 'Area predefinita',
     defaultAreaHint: "Usata dall'inserimento rapido quando non scrivi #area",
     tour: 'Tour di benvenuto',
@@ -410,7 +414,6 @@ export const it = {
     hotkey: 'Scorciatoia globale',
     hotkeyHint: "Apre l'aggiunta rapida da qualunque programma. Clicca e premi i tasti.",
     hotkeyRecording: 'Premi la combinazione…',
-    spaceKey: 'Spazio',
     notifications: 'Notifiche',
     notificationsOn: 'Notifiche attive',
     startupDigest: "Riepilogo all'avvio",
@@ -437,7 +440,8 @@ export const it = {
     dailyBackup: 'Backup giornaliero',
     dailyBackupHint: 'Una volta al giorno salva tutti i dati in JSON (lo stesso formato di Esporta)',
     folder: 'Cartella',
-    folderHint: 'Documenti\\Plainlist Backup. Se scegli una cartella dentro OneDrive, i backup vengono sincronizzati da OneDrive.',
+    documents: 'Documenti',
+    folderHint: (folder: string, cloud: string) => `${folder}. Se scegli una cartella dentro ${cloud}, i backup vengono sincronizzati da ${cloud}.`,
     choose: 'Scegli…',
     keep: 'Backup da conservare',
     keepHint: 'I più vecchi vengono eliminati',

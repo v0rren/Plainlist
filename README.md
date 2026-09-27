@@ -1,6 +1,6 @@
 # Plainlist
 
-A to-do app for Windows that works entirely offline. You type a task the way you would say it, for example `Send quote to @Marco friday at 12 #work !high`, and Plainlist works out the date, time, priority, area and people. The app is available in English and Italian.
+A to-do app for Windows, with a macOS version in beta, that works entirely offline. You type a task the way you would say it, for example `Send quote to @Marco friday at 12 #work !high`, and Plainlist works out the date, time, priority, area and people. The app is available in English and Italian.
 
 https://github.com/user-attachments/assets/93c82ae0-0821-4a2f-94f8-a764f61325e4
 
@@ -15,7 +15,7 @@ https://github.com/user-attachments/assets/93c82ae0-0821-4a2f-94f8-a764f61325e4
 - Time estimates (`~30m`, `~2h`)
 - Update: a status summary with a suggestion of what to do first, which you can copy as text
 - A daily backup to a folder of your choice, OneDrive included
-- Starts with Windows, sits in the tray, opens quick add with a global shortcut, shows native notifications
+- Starts at login, sits in the tray (the menu bar on a Mac), opens quick add with a global shortcut, shows native notifications
 - Light and dark theme, following Windows
 - No network access at all. Your data stays in a local SQLite database.
 
@@ -131,26 +131,28 @@ The same things in Italian:
 
 ## Keyboard shortcuts
 
-| Keys | Action |
-|---|---|
-| `Ctrl+Alt+Space` (can be changed) | Quick add from any program |
-| `Ctrl+N` / `Ctrl+Shift+N` | Quick entry / full form |
-| `Ctrl+F` | Search |
-| `Ctrl+U` | Update |
-| `↑` `↓`, `Enter` | Move through the list, open a task |
-| `Space` / `Del` | Complete / delete (with undo) |
-| `Esc` | Close the details |
+| Windows | Mac | Action |
+|---|---|---|
+| `Ctrl+Alt+Space` | `⇧⌘Space` | Quick add from any program (can be changed) |
+| `Ctrl+N` / `Ctrl+Shift+N` | `⌘N` / `⇧⌘N` | Quick entry / full form |
+| `Ctrl+F` | `⌘F` | Search |
+| `Ctrl+U` | `⌘U` | Update |
+| `↑` `↓`, `Enter` | `↑` `↓`, `↩` | Move through the list, open a task |
+| `Space` / `Del` | `Space` / `⌫` | Complete / delete (with undo) |
+| `Esc` | `Esc` | Close the details |
 
 If another program already uses the global shortcut, Plainlist tells you and you can choose a different one in Settings.
 
 ## Your data
 
-- Tasks are stored in `%APPDATA%\Plainlist\tasks.db` (Settings › Data › Open).
-- Before every import, and before an update changes the database structure, a copy is saved in `%APPDATA%\Plainlist\backups\`.
-- Every day the app saves everything to `plainlist-YYYY-MM-DD.json` and keeps the last 14 files. This is the same format as Export, so a backup can be imported from Settings › Data › Import. The default folder is `Documents\Plainlist Backup`; you can pick another one in Settings, for example inside OneDrive (OneDrive then does the syncing). If a backup fails you get a notification, at most once a day.
+- Tasks are stored in `%APPDATA%\Plainlist\tasks.db` on Windows and `~/Library/Application Support/Plainlist/tasks.db` on a Mac (Settings › Data › Open).
+- Before every import, and before an update changes the database structure, a copy is saved in the `backups` folder next to it.
+- Every day the app saves everything to `plainlist-YYYY-MM-DD.json` and keeps the last 14 files. This is the same format as Export, so a backup can be imported from Settings › Data › Import. The default folder is `Plainlist Backup` inside Documents; you can pick another one in Settings, for example inside OneDrive or iCloud Drive, which then does the syncing. If a backup fails you get a notification, at most once a day.
 - Uninstalling does not delete your data.
 
 ## Installing
+
+### Windows
 
 `npm run dist` builds `dist/Plainlist-Setup-<version>.exe`, which:
 
@@ -162,9 +164,17 @@ The installer isn't signed, so Windows SmartScreen may show a warning the first 
 
 To update, raise the version (`npm version minor`), run `npm run dist` and run the new installer. It replaces the program and leaves your data alone; the new version updates the database on first start if needed. If you install a version older than the one that created your data, the app stops with a message instead of opening it.
 
+### macOS (beta)
+
+The Mac version is built automatically by GitHub on every push, for Macs with Apple Silicon (M1 and later). Download the `.dmg` from the latest run of the [macOS workflow](../../actions/workflows/mac.yml) (under "Artifacts", you need to be signed in to GitHub) or from a release, open it and drag Plainlist to Applications.
+
+The app isn't notarized by Apple, so the first time macOS says it can't check it for malicious software. Open System Settings › Privacy & Security, scroll down and click "Open Anyway" next to Plainlist. After that it opens normally.
+
+To build it yourself on a Mac: `npm install`, then `npm run dist:mac`.
+
 ## Development
 
-You need Windows 10 or 11 (x64) and Node.js 20 or newer; 22 LTS is recommended. Visual Studio Build Tools are not needed, because `better-sqlite3` ships prebuilt binaries that work with both Node and Electron. The installed app doesn't need Node.
+You need Windows 10 or 11 (x64), or a Mac for the Mac version, and Node.js 20 or newer; 22 LTS is recommended. Visual Studio Build Tools are not needed, because `better-sqlite3` ships prebuilt binaries that work with both Node and Electron. The installed app doesn't need Node.
 
 ```bash
 npm install

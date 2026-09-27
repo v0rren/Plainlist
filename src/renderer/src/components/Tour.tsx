@@ -1,4 +1,4 @@
-import { getLanguage, t } from '@core/i18n'
+import { formatAccelerator, getLanguage, isMac, shortcut, t } from '@core/i18n'
 import { CheckCircle2, ChevronLeft, ChevronRight, Sparkles, Sun, X } from 'lucide-react'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { cn } from '../lib/ui'
@@ -14,6 +14,12 @@ interface Step {
   body: ReactNode
   example?: string
   view?: MainView
+}
+
+/** Scorciatoia globale attuale, nella notazione della piattaforma. */
+function HotkeyCode() {
+  const accelerator = useStore((s) => s.settings?.globalHotkey ?? 'Control+Alt+Space')
+  return <Code>{formatAccelerator(accelerator)}</Code>
 }
 
 function Code({ children }: { children: ReactNode }) {
@@ -40,7 +46,7 @@ const STEPS_IT: Step[] = [
     title: 'Scrivi come parli',
     body: (
       <>
-        Scrivi il task in modo naturale e premi <Code>Invio</Code>. Sotto il campo vedi subito come viene capito: titolo,
+        Scrivi il task in modo naturale e premi <Code>{shortcut('Enter')}</Code>. Sotto il campo vedi subito come viene capito: titolo,
         data, priorità, area, persone. Quello che non viene riconosciuto resta nel titolo ed è evidenziato.
       </>
     ),
@@ -102,8 +108,8 @@ const STEPS_IT: Step[] = [
       <>
         Clicca un task per aprire il dettaglio: note, ripetizione, "visibile dal", stima, persone. Passando con il mouse
         compaiono le azioni rapide: il mio giorno, rimanda a domani o alla settimana prossima, priorità, elimina (con
-        annulla). Da tastiera: <Code>↑</Code> <Code>↓</Code> per muoverti, <Code>Spazio</Code> per completare,{' '}
-        <Code>Canc</Code> per eliminare.
+        annulla). Da tastiera: <Code>↑</Code> <Code>↓</Code> per muoverti, <Code>{shortcut('Space')}</Code> per completare,{' '}
+        <Code>{shortcut('Delete')}</Code> per eliminare.
       </>
     )
   },
@@ -116,7 +122,7 @@ const STEPS_IT: Step[] = [
       <>
         Il punto della situazione: scaduti, oggi, prossimi 7 giorni, in attesa, fermi da più di 14 giorni e un suggerimento
         su cosa affrontare per primo. Con <strong>Copia</strong> lo incolli in Teams o in una mail. Scorciatoia:{' '}
-        <Code>Ctrl+U</Code>.
+        <Code>{shortcut('Mod+U')}</Code>.
       </>
     )
   },
@@ -139,8 +145,10 @@ const STEPS_IT: Step[] = [
     title: 'Impostazioni e backup',
     body: (
       <>
-        Lingua, avvio con Windows, tema, scorciatoia globale, notifiche e area predefinita. Ogni giorno viene fatto un backup
-        automatico in <Code>Documenti\Plainlist Backup</Code>: puoi scegliere un'altra cartella, per esempio dentro OneDrive.
+        Lingua, {isMac() ? "apertura all'accesso" : 'avvio con Windows'}, tema, scorciatoia globale, notifiche e area
+        predefinita. Ogni giorno viene fatto un backup automatico in{' '}
+        <Code>{isMac() ? 'Documenti/Plainlist Backup' : 'Documenti\\Plainlist Backup'}</Code>: puoi scegliere un'altra cartella,
+        per esempio dentro {isMac() ? 'iCloud Drive' : 'OneDrive'}.
       </>
     )
   },
@@ -150,8 +158,10 @@ const STEPS_IT: Step[] = [
     title: 'Sempre a portata di mano',
     body: (
       <>
-        Chiudendo la finestra con la X, Plainlist resta nell'area di notifica vicino all'orologio. Da qualunque programma,{' '}
-        <Code>Ctrl+Alt+Spazio</Code> apre l'aggiunta rapida (la combinazione si cambia in Impostazioni). Tutto funziona
+        {isMac()
+          ? 'Chiudendo la finestra, Plainlist resta attivo con la sua icona nella barra dei menu.'
+          : "Chiudendo la finestra con la X, Plainlist resta nell'area di notifica vicino all'orologio."}{' '}
+        Da qualunque programma, <HotkeyCode /> apre l'aggiunta rapida (la combinazione si cambia in Impostazioni). Tutto funziona
         offline e i dati restano su questo PC.
       </>
     )
@@ -165,7 +175,7 @@ const STEPS_EN: Step[] = [
     title: 'Type the way you talk',
     body: (
       <>
-        Type the task in plain words and press <Code>Enter</Code>. Right below the box you see how it was understood:
+        Type the task in plain words and press <Code>{shortcut('Enter')}</Code>. Right below the box you see how it was understood:
         title, date, priority, area, people. Anything that isn't recognised stays in the title and is highlighted.
       </>
     ),
@@ -227,7 +237,7 @@ const STEPS_EN: Step[] = [
       <>
         Click a task to open its details: notes, repeat, "visible from", estimate, people. Hovering shows quick actions:
         My Day, move to tomorrow or next week, priority, delete (with undo). With the keyboard: <Code>↑</Code>{' '}
-        <Code>↓</Code> to move, <Code>Space</Code> to complete, <Code>Del</Code> to delete.
+        <Code>↓</Code> to move, <Code>{shortcut('Space')}</Code> to complete, <Code>{shortcut('Delete')}</Code> to delete.
       </>
     )
   },
@@ -240,7 +250,7 @@ const STEPS_EN: Step[] = [
       <>
         Where things stand: overdue, today, the next 7 days, waiting, stalled for more than 14 days, and a suggestion on
         what to tackle first. <strong>Copy</strong> it and paste it into Teams or an email. Shortcut:{' '}
-        <Code>Ctrl+U</Code>.
+        <Code>{shortcut('Mod+U')}</Code>.
       </>
     )
   },
@@ -263,8 +273,10 @@ const STEPS_EN: Step[] = [
     title: 'Settings and backup',
     body: (
       <>
-        Language, start with Windows, theme, global shortcut, notifications and default area. Every day an automatic
-        backup goes to <Code>Documents\Plainlist Backup</Code>: you can pick another folder, for example inside OneDrive.
+        Language, {isMac() ? 'open at login' : 'start with Windows'}, theme, global shortcut, notifications and default area.
+        Every day an automatic backup goes to{' '}
+        <Code>{isMac() ? 'Documents/Plainlist Backup' : 'Documents\\Plainlist Backup'}</Code>: you can pick another folder, for
+        example inside {isMac() ? 'iCloud Drive' : 'OneDrive'}.
       </>
     )
   },
@@ -274,8 +286,10 @@ const STEPS_EN: Step[] = [
     title: 'Always within reach',
     body: (
       <>
-        When you close the window with the X, Plainlist stays in the notification area next to the clock. From any
-        program, <Code>Ctrl+Alt+Space</Code> opens quick add (you can change the keys in Settings). Everything works
+        {isMac()
+          ? 'When you close the window, Plainlist keeps running with its icon in the menu bar.'
+          : 'When you close the window with the X, Plainlist stays in the notification area next to the clock.'}{' '}
+        From any program, <HotkeyCode /> opens quick add (you can change the keys in Settings). Everything works
         offline and your data stays on this PC.
       </>
     )

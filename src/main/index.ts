@@ -1,11 +1,12 @@
 import { app, dialog, Menu, nativeTheme, powerMonitor, type BrowserWindow } from 'electron'
 import { join } from 'node:path'
-import { languageFromLocale, localeTag, setLanguage, t, type Language } from '../core/i18n'
+import { isMac, languageFromLocale, localeTag, platformFromNode, setLanguage, setPlatform, t, type Language } from '../core/i18n'
 import type { EventMap } from '../shared/ipc'
 import type { Settings } from '../shared/types'
 import { openDatabase, peekSetting, type OpenResult } from './data'
 import { broadcast, registerIpc } from './ipc/handlers'
 import { TaskService } from './services/taskService'
+import { macMenu } from './system/appMenu'
 import { applyAutostart, launchedHidden } from './system/autostart'
 import { AutoBackup } from './system/autoBackup'
 import { GlobalHotkey } from './system/hotkey'
@@ -17,6 +18,8 @@ import { QuickAddWindow } from './windows/quickAddWindow'
 import { blockNetwork } from './windows/security'
 
 const APP_ID = 'it.claudiovona.plainlist'
+/** Su Mac ⌃⌥Space cambia la lingua della tastiera e ⌘Space apre Spotlight: si parte da ⇧⌘Space. */
+const MAC_HOTKEY = 'Shift+Command+Space'
 
 /** Lingua per il primo avvio: quella dell'interfaccia di Windows, se è italiano; altrimenti inglese. */
 function systemLanguage(): Language {
@@ -33,13 +36,15 @@ function systemLanguage(): Language {
 // Chromium fissa la lingua dei campi data e ora all'avvio, prima di "ready": la si legge dal database.
 const startupLanguage = peekSetting(join(app.getPath('userData'), 'tasks.db'), 'language') ?? systemLanguage()
 setLanguage(startupLanguage)
+setPlatform(platformFromNode(process.platform))
 app.commandLine.appendSwitch('lang', localeTag(startupLanguage))
-app.setAppUserModelId(APP_ID)
+// Solo Windows: collega notifiche e collegamenti all'app installata.
+if (process.platform === 'win32') app.setAppUserModelId(APP_ID)
 
-/** Primo avvio con un database nuovo: lingua di Windows e, in inglese, nomi inglesi per le aree di esempio. */
+/** Primo avvio con un database nuovo: lingua del sistema, scorciatoia adatta e, in inglese, nomi inglesi per le aree. */
 function firstRun(service: TaskService): void {
   const language = systemLanguage()
-  service.settings.set({ firstRunDone: true, language })
+  service.settings.set({ firstRunDone: true, language, ...(isMac() ? { globalHotkey: MAC_HOTKEY } : {}) })
   if (language === 'it') return
   const names = t(language).system.defaultAreas
   const italian = t('it').system.defaultAreas
@@ -93,6 +98,7 @@ if (!app.requestSingleInstanceLock()) {
     if (!prev || prev.language !== next.language) {
       setLanguage(next.language)
       tray?.refresh()
+      setAppMenu()
       refreshTray()
     }
     if (!prev || prev.autostart !== next.autostart) applyAutostart(next.autostart)
@@ -157,12 +163,22 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('second-instance', () => showMain())
 
+  // Mac: clic sull'icona nel Dock con la finestra chiusa.
+  app.on('activate', () => {
+    if (service) showMain()
+  })
+
+  function setAppMenu(): void {
+    if (isMac()) Menu.setApplicationMenu(macMenu({ settings: () => showMainAnd('nav:show', { view: 'settings' }) }))
+    else if (app.isPackaged) Menu.setApplicationMenu(null)
+  }
+
   app.on('before-quit', () => {
     quitting = true
   })
 
   app.on('window-all-closed', () => {
-    // L'app resta attiva nell'area di notifica.
+    // L'app resta attiva nell'area di notifica (su Mac nella barra dei menu).
   })
 
   app.on('will-quit', () => {
@@ -172,7 +188,7 @@ if (!app.requestSingleInstanceLock()) {
 
   void app.whenReady().then(() => {
     blockNetwork()
-    if (app.isPackaged) Menu.setApplicationMenu(null)
+    setAppMenu()
 
     const userData = app.getPath('userData')
     let opened: OpenResult

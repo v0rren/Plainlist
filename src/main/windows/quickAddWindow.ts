@@ -1,4 +1,4 @@
-import { BrowserWindow, screen } from 'electron'
+import { app, BrowserWindow, screen } from 'electron'
 import { t } from '../../core/i18n'
 import { loadPage, preloadPath } from './mainWindow'
 import { hardenWebContents } from './security'
@@ -35,7 +35,9 @@ export class QuickAddWindow {
       }
     })
     hardenWebContents(win.webContents)
-    win.on('blur', () => win.hide())
+    // Mac: la finestra compare anche sopra le app a schermo intero, nella scrivania corrente.
+    if (process.platform === 'darwin') win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+    win.on('blur', () => this.hide())
     win.on('closed', () => {
       this.win = null
       this.ready = false
@@ -60,6 +62,8 @@ export class QuickAddWindow {
     const [, h] = win.getSize()
     win.setBounds({ x: Math.round(x + (width - WIDTH) / 2), y: Math.round(y + height * 0.22), width: WIDTH, height: h })
     const focus = (): void => {
+      // Su Mac una finestra non passa in primo piano se l'app non è attiva.
+      if (process.platform === 'darwin') app.focus({ steal: true })
       win.show()
       win.focus()
       win.webContents.send('quick:focus')
@@ -69,7 +73,10 @@ export class QuickAddWindow {
   }
 
   hide(): void {
-    this.win?.hide()
+    if (!this.win?.isVisible()) return
+    this.win.hide()
+    // Su Mac, senza altre finestre aperte, si restituisce il fuoco all'app di prima.
+    if (process.platform === 'darwin' && !BrowserWindow.getAllWindows().some((w) => w !== this.win && w.isVisible())) app.hide()
   }
 
   resize(contentHeight: number): void {

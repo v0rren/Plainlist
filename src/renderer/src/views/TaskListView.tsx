@@ -1,6 +1,6 @@
 import { useDroppable } from '@dnd-kit/core'
 import type { TaskGroup } from '@core/grouping'
-import { t } from '@core/i18n'
+import { shortcut, t } from '@core/i18n'
 import { formatDateLong } from '@core/time'
 import type { ViewId } from '@shared/ipc'
 import { ChevronDown, ChevronRight, Plus, X } from 'lucide-react'
@@ -75,7 +75,7 @@ export function TaskListView() {
             </span>
           ))}
         </div>
-        <button className="btn" onClick={() => setNewTaskOpen(true)} title={m.newTaskHint}>
+        <button className="btn" onClick={() => setNewTaskOpen(true)} title={m.newTaskHint(shortcut('Mod+Shift+N'))}>
           <Plus size={15} /> {m.newTask}
         </button>
       </div>
@@ -86,7 +86,7 @@ export function TaskListView() {
         <div className="mt-16 text-center text-muted">
           <p className="text-base">{m.empty}</p>
           <p className="mt-1 text-sm text-subtle">
-            {chips.length ? m.emptyFiltered : m.emptyHint}
+            {chips.length ? m.emptyFiltered : m.emptyHint(shortcut('Enter'))}
           </p>
         </div>
       ) : (

@@ -1,10 +1,12 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { platformFromNode } from '../core/i18n'
 import { EVENT_CHANNELS, INVOKE_CHANNELS, type RendererApi, type Wire } from '../shared/ipc'
 
 const invokeChannels = new Set<string>(INVOKE_CHANNELS)
 const eventChannels = new Set<string>(EVENT_CHANNELS)
 
 const api: RendererApi = {
+  platform: platformFromNode(process.platform),
   async invoke(channel, ...args) {
     if (!invokeChannels.has(channel)) throw new Error(`Canale non consentito: ${channel}`)
     const res = (await ipcRenderer.invoke(channel, args[0])) as Wire<unknown>

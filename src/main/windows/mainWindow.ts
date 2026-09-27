@@ -2,8 +2,12 @@ import { app, BrowserWindow, nativeTheme } from 'electron'
 import { join } from 'node:path'
 import { hardenWebContents } from './security'
 
+export function resourcePath(name: string): string {
+  return app.isPackaged ? join(process.resourcesPath, name) : join(__dirname, '../../resources', name)
+}
+
 export function appIconPath(): string {
-  return app.isPackaged ? join(process.resourcesPath, 'icon.ico') : join(__dirname, '../../resources/icon.ico')
+  return resourcePath(process.platform === 'win32' ? 'icon.ico' : 'icon.png')
 }
 
 export function preloadPath(): string {

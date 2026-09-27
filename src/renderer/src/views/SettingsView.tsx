@@ -1,4 +1,4 @@
-import { LANGUAGES, t } from '@core/i18n'
+import { LANGUAGES, formatAccelerator, isMac, t } from '@core/i18n'
 import type { AreaUpsert, BackupStatus } from '@shared/ipc'
 import type { Area, Language, Settings } from '@shared/types'
 import { Archive, ArchiveRestore, Download, FolderOpen, Plus, RefreshCw, Trash2, Upload } from 'lucide-react'
@@ -32,16 +32,14 @@ export function toAccelerator(e: KeyboardEvent | React.KeyboardEvent): string | 
   if (!key && e.code.startsWith('Key')) key = e.code.slice(3)
   if (!key && e.code.startsWith('Digit')) key = e.code.slice(5)
   if (!key) return null
-  const mods = [e.ctrlKey && 'Control', e.altKey && 'Alt', e.shiftKey && 'Shift', e.metaKey && 'Super'].filter(Boolean)
+  // Su Mac il tasto ⌘ è "Command" per Electron; su Windows il tasto Win è "Super".
+  const mods = [e.ctrlKey && 'Control', e.altKey && 'Alt', e.shiftKey && 'Shift', e.metaKey && (isMac() ? 'Command' : 'Super')].filter(Boolean)
   if (!e.ctrlKey && !e.altKey && !e.metaKey && !/^F\d/.test(key)) return null
   return [...mods, key].join('+')
 }
 
 export function describeAccelerator(acc: string): string {
-  return acc
-    .split('+')
-    .map((p) => ({ Control: 'Ctrl', Space: t().settings.spaceKey, Super: 'Win', Up: '↑', Down: '↓', Left: '←', Right: '→' })[p] ?? p)
-    .join('+')
+  return formatAccelerator(acc)
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -168,7 +166,7 @@ function BackupSection({ settings, update }: { settings: Settings; update(patch:
       </Item>
       <Item
         label={m.folder}
-        hint={status?.folder ?? m.folderHint}
+        hint={status?.folder ?? m.folderHint(isMac() ? `${m.documents}/Plainlist Backup` : `${m.documents}\\Plainlist Backup`, isMac() ? 'iCloud Drive' : 'OneDrive')}
       >
         <div className="flex gap-2">
           <button className="btn" disabled={busy} onClick={() => void act(() => api.invoke('backup:chooseFolder'))}>
@@ -347,7 +345,7 @@ export function SettingsView() {
             ))}
           </select>
         </Item>
-        <Item label={m.autostart} hint={m.autostartHint}>
+        <Item label={isMac() ? m.autostartMac : m.autostart} hint={isMac() ? m.autostartHintMac : m.autostartHint}>
           <Toggle checked={settings.autostart} onChange={(v) => void update({ autostart: v })} />
         </Item>
         <Item label={m.theme}>
@@ -356,7 +354,7 @@ export function SettingsView() {
             onChange={(e) => void update({ theme: e.target.value as Settings['theme'] })}
             className="field w-auto"
           >
-            <option value="system">{m.themes.system}</option>
+            <option value="system">{isMac() ? m.themes.systemMac : m.themes.system}</option>
             <option value="light">{m.themes.light}</option>
             <option value="dark">{m.themes.dark}</option>
           </select>

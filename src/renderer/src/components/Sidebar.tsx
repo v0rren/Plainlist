@@ -1,5 +1,5 @@
 import { useDroppable } from '@dnd-kit/core'
-import { t } from '@core/i18n'
+import { shortcut, t } from '@core/i18n'
 import type { ViewId } from '@shared/ipc'
 import {
   CalendarCheck,
@@ -108,7 +108,7 @@ export function Sidebar() {
                 e.currentTarget.blur()
               }
             }}
-            placeholder={m.search}
+            placeholder={m.search(shortcut('Mod+F'))}
             className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-subtle"
           />
           {search && (
@@ -150,7 +150,7 @@ export function Sidebar() {
             icon={Zap}
             label={m.update}
             onClick={() => setMainView('update')}
-            hint={m.updateHint}
+            hint={m.updateHint(shortcut('Mod+U'))}
             tour="nav-update"
           />
           <NavItem active={mainView === 'history'} icon={History} label={m.completed} onClick={() => setMainView('history')} />
@@ -229,7 +229,7 @@ export function Sidebar() {
           onClick={() => setMainView('settings')}
         />
         <div className="flex items-center gap-1.5 px-3 pt-1 text-[11px] text-subtle">
-          <CalendarDays size={11} /> {m.shortcuts}
+          <CalendarDays size={11} /> {m.shortcuts(shortcut('Mod+N'), shortcut('Mod+U'))}
         </div>
       </div>
     </aside>

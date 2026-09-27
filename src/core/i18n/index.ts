@@ -42,3 +42,47 @@ export function languageFromLocale(locale: string | undefined): Language {
 export function localeTag(lang: Language = current): string {
   return lang === 'it' ? 'it-IT' : 'en-GB'
 }
+
+// ---------- piattaforma ----------
+
+export type Platform = 'win' | 'mac' | 'linux'
+
+let platform: Platform = 'win'
+
+export function platformFromNode(nodePlatform: string): Platform {
+  return nodePlatform === 'darwin' ? 'mac' : nodePlatform === 'win32' ? 'win' : 'linux'
+}
+
+export function setPlatform(p: Platform): void {
+  platform = p
+}
+
+export function isMac(): boolean {
+  return platform === 'mac'
+}
+
+const MAC_MODIFIERS: Record<string, string> = { Control: '⌃', Ctrl: '⌃', Alt: '⌥', Option: '⌥', Shift: '⇧', Mod: '⌘', Command: '⌘', Cmd: '⌘', Super: '⌘', Meta: '⌘' }
+const MAC_ORDER = ['⌃', '⌥', '⇧', '⌘']
+const MAC_KEYS: Record<string, string> = { Enter: '↩', Return: '↩', Delete: '⌫', Backspace: '⌫', Space: 'Space', Up: '↑', Down: '↓', Left: '←', Right: '→', Escape: 'Esc', Esc: 'Esc' }
+
+/**
+ * Combinazione di tasti leggibile per la piattaforma: "Mod" è Ctrl su Windows e ⌘ su Mac.
+ * "Mod+Shift+N" → "Ctrl+Shift+N" oppure "⇧⌘N"; "Delete" → "Canc"/"Del" oppure "⌫".
+ */
+export function shortcut(combo: string, lang: Language = current): string {
+  const parts = combo.split('+')
+  if (platform === 'mac') {
+    const mods = parts.slice(0, -1).map((p) => MAC_MODIFIERS[p] ?? p)
+    const key = parts.at(-1)!
+    mods.sort((a, b) => MAC_ORDER.indexOf(a) - MAC_ORDER.indexOf(b))
+    return mods.join('') + (MAC_KEYS[key] ?? key)
+  }
+  const keys = CATALOG[lang].keys as Record<string, string>
+  const names: Record<string, string> = { Mod: 'Ctrl', Control: 'Ctrl', Command: 'Ctrl', Super: 'Win', Meta: 'Win', Up: '↑', Down: '↓', Left: '←', Right: '→', Escape: 'Esc' }
+  return parts.map((p) => keys[p] ?? names[p] ?? p).join('+')
+}
+
+/** Acceleratore di Electron ("Control+Alt+Space", "Shift+Command+Space") in forma leggibile. */
+export function formatAccelerator(accelerator: string, lang: Language = current): string {
+  return shortcut(accelerator, lang)
+}

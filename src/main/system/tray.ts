@@ -1,6 +1,6 @@
 import { Menu, Tray, nativeImage } from 'electron'
 import { t } from '../../core/i18n'
-import { appIconPath } from '../windows/mainWindow'
+import { appIconPath, resourcePath } from '../windows/mainWindow'
 
 export interface TrayActions {
   open(): void
@@ -11,6 +11,16 @@ export interface TrayActions {
   quit(): void
 }
 
+/** Su Mac la barra dei menu vuole un'immagine "template": solo la forma, il colore lo decide il sistema. */
+function trayImage(): Electron.NativeImage {
+  if (process.platform === 'darwin') {
+    const image = nativeImage.createFromPath(resourcePath('trayTemplate.png'))
+    image.setTemplateImage(true)
+    return image
+  }
+  return nativeImage.createFromPath(appIconPath()).resize({ width: 16, height: 16 })
+}
+
 export class AppTray {
   private tray: Tray
   private hotkey: string | null = null
@@ -19,8 +29,7 @@ export class AppTray {
     private readonly actions: TrayActions,
     hotkey: string | null
   ) {
-    const image = nativeImage.createFromPath(appIconPath()).resize({ width: 16, height: 16 })
-    this.tray = new Tray(image)
+    this.tray = new Tray(trayImage())
     this.tray.setToolTip('Plainlist')
     this.tray.on('click', () => actions.open())
     this.setHotkey(hotkey)

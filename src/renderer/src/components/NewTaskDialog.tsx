@@ -1,4 +1,4 @@
-import { t } from '@core/i18n'
+import { isMac, shortcut, t } from '@core/i18n'
 import { useState } from 'react'
 import { api, errorMessage } from '../lib/ui'
 import { useStore } from '../store'
@@ -50,7 +50,7 @@ export function NewTaskDialog() {
           <button className="btn" onClick={() => setOpen(false)}>
             {t().common.cancel}
           </button>
-          <button className="btn-primary" disabled={!draft.title.trim() || busy} onClick={() => void save()} title={t().newTask.saveHint}>
+          <button className="btn-primary" disabled={!draft.title.trim() || busy} onClick={() => void save()} title={shortcut('Mod+Enter')}>
             {t().common.save}
           </button>
         </>
@@ -58,7 +58,7 @@ export function NewTaskDialog() {
     >
       <div
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && e.ctrlKey) {
+          if (e.key === 'Enter' && (isMac() ? e.metaKey : e.ctrlKey)) {
             e.preventDefault()
             void save()
           }

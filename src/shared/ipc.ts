@@ -1,4 +1,5 @@
 import type { TaskGroup } from '../core/grouping'
+import type { Platform } from '../core/i18n'
 import type { MyDay } from '../core/myDay'
 import type { PersonOverview } from '../core/person'
 import type { Summary } from '../core/summary'
@@ -191,4 +192,6 @@ export interface RendererApi {
     ...args: InvokeReq<K> extends void ? [] : [InvokeReq<K>]
   ): Promise<InvokeRes<K>>
   on<K extends EventChannel>(channel: K, listener: (payload: EventMap[K]) => void): () => void
+  /** Sistema operativo, per scorciatoie e testi specifici (⌘ su Mac). */
+  platform: Platform
 }

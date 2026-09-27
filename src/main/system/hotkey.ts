@@ -1,5 +1,5 @@
 import { globalShortcut } from 'electron'
-import { t } from '../../core/i18n'
+import { formatAccelerator, t } from '../../core/i18n'
 
 export class GlobalHotkey {
   private current: string | null = null
@@ -26,7 +26,7 @@ export class GlobalHotkey {
       return undefined
     }
     if (previous) this.restore(previous)
-    return t().errors.hotkeyUnavailable(accelerator.replace('Control', 'Ctrl'))
+    return t().errors.hotkeyUnavailable(formatAccelerator(accelerator))
   }
 
   clear(): void {

@@ -1,4 +1,4 @@
-import { getLanguage, t } from '@core/i18n'
+import { getLanguage, shortcut, t } from '@core/i18n'
 import { formatEstimate, parseQuickInput, type ParseResult } from '@core/parser'
 import { describeRecurrence } from '@core/recurrence'
 import { formatDateShort, todayKey } from '@core/time'
@@ -119,7 +119,7 @@ export const QuickInput = forwardRef<QuickInputHandle, Props>(function QuickInpu
             className="btn-ghost shrink-0 text-xs"
             disabled={!parsed.title || busy}
             onClick={() => void submit()}
-            title={t().quick.addHint}
+            title={t().quick.addHint(shortcut('Enter'))}
           >
             <CornerDownLeft size={14} /> {t().common.add}
           </button>

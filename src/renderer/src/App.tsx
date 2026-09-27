@@ -7,7 +7,7 @@ import {
   type DragEndEvent,
   type DragStartEvent
 } from '@dnd-kit/core'
-import { t } from '@core/i18n'
+import { isMac, t } from '@core/i18n'
 import { useEffect, useRef, useState } from 'react'
 import { DetailPanel } from './components/DetailPanel'
 import { NewTaskDialog } from './components/NewTaskDialog'
@@ -44,7 +44,9 @@ function useKeyboardShortcuts(focusQuick: () => void): void {
       const key = e.key.toLowerCase()
       const modal = document.querySelector('[data-modal]') !== null
 
-      if (e.ctrlKey && !e.altKey) {
+      // Ctrl su Windows, ⌘ su Mac.
+      const mod = isMac() ? e.metaKey : e.ctrlKey
+      if (mod && !e.altKey) {
         if (key === 'n' && e.shiftKey) {
           e.preventDefault()
           s.setNewTaskOpen(true)
@@ -98,7 +100,7 @@ function useKeyboardShortcuts(focusQuick: () => void): void {
         const nextId = ids[index + 1] ?? ids[index - 1] ?? null
         void taskActions.complete(task.id, task.status !== 'done')
         if (task.status !== 'done' && nextId !== null) s.select(nextId)
-      } else if (e.key === 'Delete') {
+      } else if (e.key === 'Delete' || (isMac() && e.key === 'Backspace')) {
         e.preventDefault()
         const nextId = ids[index + 1] ?? ids[index - 1] ?? null
         void taskActions.remove(task).then(() => nextId !== null && useStore.getState().select(nextId))

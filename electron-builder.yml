@@ -9,11 +9,8 @@ files:
   - package.json
   - '!**/*.map'
   - '!node_modules/better-sqlite3/{deps,src,docs,benchmark}/**'
-  - '!node_modules/better-sqlite3/prebuilds/{darwin,linux}*'
-  - '!node_modules/better-sqlite3/prebuilds/win32-arm64.node'
-extraResources:
-  - from: resources/icon.ico
-    to: icon.ico
+  # I binari di SQLite per le altre piattaforme si escludono nelle sezioni win e mac.
+  - '!node_modules/better-sqlite3/prebuilds/linux*'
 asarUnpack:
   - '**/*.node'
 npmRebuild: false
@@ -23,6 +20,34 @@ win:
     - target: nsis
       arch: [x64]
   icon: resources/icon.ico
+  files:
+    - '!node_modules/better-sqlite3/prebuilds/darwin*'
+    - '!node_modules/better-sqlite3/prebuilds/win32-arm64.node'
+  extraResources:
+    - from: resources/icon.ico
+      to: icon.ico
+mac:
+  target:
+    - target: dmg
+      arch: [arm64]
+  icon: resources/icon-mac.png
+  category: public.app-category.productivity
+  artifactName: Plainlist-${version}-mac-${arch}.${ext}
+  # Firma "ad-hoc", gratuita: senza firma i Mac con Apple Silicon non avviano l'app.
+  # Non sostituisce la notarizzazione: al primo avvio macOS chiede conferma.
+  identity: '-'
+  hardenedRuntime: false
+  files:
+    - '!node_modules/better-sqlite3/prebuilds/win32*'
+  extraResources:
+    - from: resources/icon.png
+      to: icon.png
+    - from: resources/trayTemplate.png
+      to: trayTemplate.png
+    - from: resources/trayTemplate@2x.png
+      to: trayTemplate@2x.png
+dmg:
+  title: Plainlist ${version}
 nsis:
   oneClick: false
   perMachine: false

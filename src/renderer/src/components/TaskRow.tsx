@@ -1,5 +1,5 @@
 import { useDraggable } from '@dnd-kit/core'
-import { t } from '@core/i18n'
+import { shortcut, t } from '@core/i18n'
 import { formatEstimate } from '@core/parser'
 import { describeRecurrence } from '@core/recurrence'
 import { formatDateShort } from '@core/time'
@@ -198,7 +198,7 @@ export function TaskRow({ task, today }: { task: Task; today: string }) {
           <PriorityMenu task={task} />
           <button
             className="icon-btn hover:text-danger"
-            title={m.row.deleteHint}
+            title={m.row.deleteHint(shortcut('Delete'))}
             onClick={(e) => {
               e.stopPropagation()
               void taskActions.remove(task)

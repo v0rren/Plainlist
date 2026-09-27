@@ -9,6 +9,8 @@ function ordinal(n: number): string {
 }
 
 export const en: Messages = {
+  keys: { Enter: 'Enter', Delete: 'Del', Space: 'Space' },
+
   common: {
     add: 'Add',
     cancel: 'Cancel',
@@ -207,7 +209,7 @@ export const en: Messages = {
   },
 
   sidebar: {
-    search: 'Search  (Ctrl+F)',
+    search: (keys) => `Search  (${keys})`,
     clearSearch: 'Clear search',
     myDay: 'My Day',
     myDayHint: 'Plan your day. Drag a task here to add it',
@@ -222,7 +224,7 @@ export const en: Messages = {
     },
     dropHint: (view) => `Drag a task here to move it to ${view.toLowerCase()}`,
     update: 'Update',
-    updateHint: 'Summary (Ctrl+U)',
+    updateHint: (keys) => `Summary (${keys})`,
     completed: 'Completed',
     areas: 'Areas',
     people: 'People',
@@ -230,7 +232,7 @@ export const en: Messages = {
     priority: 'Priority',
     clearFilters: 'Clear filters',
     settings: 'Settings',
-    shortcuts: 'Ctrl+N new · Ctrl+U update'
+    shortcuts: (newKeys, updateKeys) => `${newKeys} new · ${updateKeys} update`
   },
 
   list: {
@@ -247,16 +249,16 @@ export const en: Messages = {
     scheduledHint: 'Tasks hidden until a date ("from monday", "starting 15/10"). They come back on their own that day.',
     removeFilter: 'Remove filter',
     newTask: 'New',
-    newTaskHint: 'New task with all fields (Ctrl+Shift+N)',
+    newTaskHint: (keys) => `New task with all fields (${keys})`,
     empty: 'Nothing to show here.',
     emptyFiltered: 'Try removing the filters.',
-    emptyHint: 'Type a task in the box at the top and press Enter.',
+    emptyHint: (enter) => `Type a task in the box at the top and press ${enter}.`,
     listLabel: 'Tasks'
   },
 
   quick: {
     placeholder: 'What do you need to do? e.g. Send quote to @Marco friday at 12 #work !high',
-    addHint: 'Add (Enter)',
+    addHint: (keys) => `Add (${keys})`,
     missingTitle: 'Missing title',
     visibleFrom: (date) => `visible from ${date}`,
     isNew: '(new)',
@@ -270,7 +272,7 @@ export const en: Messages = {
     from: (date) => `from ${date}`,
     toTomorrow: 'Move to tomorrow',
     toNextWeek: 'Move to next week',
-    deleteHint: 'Delete (Del)'
+    deleteHint: (keys) => `Delete (${keys})`
   },
 
   detail: {
@@ -329,8 +331,7 @@ export const en: Messages = {
   },
 
   newTask: {
-    title: 'New task',
-    saveHint: 'Ctrl+Enter'
+    title: 'New task'
   },
 
   myDay: {
@@ -405,8 +406,10 @@ export const en: Messages = {
     restart: 'Restart',
     autostart: 'Start with Windows',
     autostartHint: 'When you sign in, the app starts minimized in the notification area',
+    autostartMac: 'Open at login',
+    autostartHintMac: 'When you log in, the app starts hidden, with its icon in the menu bar',
     theme: 'Theme',
-    themes: { system: 'Same as Windows', light: 'Light', dark: 'Dark' },
+    themes: { system: 'Same as Windows', systemMac: 'Same as macOS', light: 'Light', dark: 'Dark' },
     defaultArea: 'Default area',
     defaultAreaHint: "Used by quick entry when you don't type #area",
     tour: 'Welcome tour',
@@ -415,7 +418,6 @@ export const en: Messages = {
     hotkey: 'Global shortcut',
     hotkeyHint: 'Opens quick add from any program. Click, then press the keys.',
     hotkeyRecording: 'Press the keys…',
-    spaceKey: 'Space',
     notifications: 'Notifications',
     notificationsOn: 'Notifications on',
     startupDigest: 'Summary at startup',
@@ -442,7 +444,8 @@ export const en: Messages = {
     dailyBackup: 'Daily backup',
     dailyBackupHint: 'Once a day, saves all your data as JSON (the same format as Export)',
     folder: 'Folder',
-    folderHint: 'Documents\\Plainlist Backup. If you pick a folder inside OneDrive, OneDrive syncs the backups.',
+    documents: 'Documents',
+    folderHint: (folder, cloud) => `${folder}. If you pick a folder inside ${cloud}, ${cloud} syncs the backups.`,
     choose: 'Choose…',
     keep: 'Backups to keep',
     keepHint: 'Older ones are deleted',

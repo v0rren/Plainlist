@@ -1,8 +1,10 @@
-import { localeTag, t } from '@core/i18n'
+import { localeTag, setPlatform, t } from '@core/i18n'
 import { diffDays, formatDateShort, formatDue } from '@core/time'
 import type { Priority, Task } from '@shared/types'
 
 export const api = window.api
+// Vale sia per la finestra principale sia per l'aggiunta rapida: entrambe importano questo modulo.
+setPlatform(api.platform)
 
 export function cn(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ')

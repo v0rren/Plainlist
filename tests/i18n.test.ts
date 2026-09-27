@@ -3,7 +3,18 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { groupTasks } from '../src/core/grouping'
-import { getLanguage, languageFromLocale, localeTag, setLanguage, t } from '../src/core/i18n'
+import {
+  formatAccelerator,
+  getLanguage,
+  isMac,
+  languageFromLocale,
+  localeTag,
+  platformFromNode,
+  setLanguage,
+  setPlatform,
+  shortcut,
+  t
+} from '../src/core/i18n'
 import { en } from '../src/core/i18n/en'
 import { it as itMessages } from '../src/core/i18n/it'
 import { describeRecurrence } from '../src/core/recurrence'
@@ -18,7 +29,10 @@ import { makeTask } from './helpers'
 const NOW = new Date('2026-09-24T08:00:00Z')
 const TODAY = '2026-09-24'
 
-afterEach(() => setLanguage('it'))
+afterEach(() => {
+  setLanguage('it')
+  setPlatform('win')
+})
 
 /** Chiavi annidate di un catalogo, per confrontare le due lingue. */
 function keys(value: unknown, prefix = ''): string[] {
@@ -138,5 +152,42 @@ describe('impostazione della lingua', () => {
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('scorciatoie per piattaforma', () => {
+  it('riconosce il sistema operativo', () => {
+    expect(platformFromNode('darwin')).toBe('mac')
+    expect(platformFromNode('win32')).toBe('win')
+    expect(platformFromNode('linux')).toBe('linux')
+    expect(isMac()).toBe(false)
+  })
+
+  it.each([
+    ['Mod+N', 'Ctrl+N', 'Ctrl+N', '⌘N'],
+    ['Mod+Shift+N', 'Ctrl+Shift+N', 'Ctrl+Shift+N', '⇧⌘N'],
+    ['Mod+Enter', 'Ctrl+Invio', 'Ctrl+Enter', '⌘↩'],
+    ['Delete', 'Canc', 'Del', '⌫'],
+    ['Space', 'Spazio', 'Space', 'Space']
+  ])('%s → Windows it %s, Windows en %s, Mac %s', (combo, winIt, winEn, mac) => {
+    expect(shortcut(combo, 'it')).toBe(winIt)
+    expect(shortcut(combo, 'en')).toBe(winEn)
+    setPlatform('mac')
+    expect(shortcut(combo, 'it')).toBe(mac)
+  })
+
+  it('acceleratori di Electron', () => {
+    expect(formatAccelerator('Control+Alt+Space', 'it')).toBe('Ctrl+Alt+Spazio')
+    expect(formatAccelerator('Super+Shift+K', 'en')).toBe('Win+Shift+K')
+    setPlatform('mac')
+    // Su Mac i modificatori seguono l'ordine standard ⌃⌥⇧⌘, qualunque sia l'ordine salvato.
+    expect(formatAccelerator('Shift+Command+Space')).toBe('⇧⌘Space')
+    expect(formatAccelerator('Command+Alt+Control+P')).toBe('⌃⌥⌘P')
+  })
+
+  it('testi dei suggerimenti con le scorciatoie', () => {
+    expect(t('it').sidebar.search(shortcut('Mod+F', 'it'))).toBe('Cerca  (Ctrl+F)')
+    setPlatform('mac')
+    expect(t('en').row.deleteHint(shortcut('Delete', 'en'))).toBe('Delete (⌫)')
   })
 })

@@ -1,4 +1,5 @@
-// Genera resources/icon.ico e resources/icon.png senza dipendenze esterne.
+// Genera le icone in resources/ senza dipendenze esterne: icon.ico e icon.png (Windows),
+// icon-mac.png (Dock, con il margine della griglia Apple) e trayTemplate.png (barra dei menu del Mac).
 // Uso: node scripts/make-icons.mjs
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -34,8 +35,9 @@ function onCheck(x, y) {
   return false
 }
 
-function render(size) {
-  const margin = size <= 24 ? 0.02 : 0.06
+/** `inset`: margine esterno in proporzione (icone Mac: il quadrato occupa 824 px su 1024). */
+function render(size, inset = 0) {
+  const margin = inset > 0 ? 0 : size <= 24 ? 0.02 : 0.06
   const px = Buffer.alloc(size * size * 4)
   for (let j = 0; j < size; j++) {
     for (let i = 0; i < size; i++) {
@@ -43,8 +45,8 @@ function render(size) {
       let fg = 0
       for (let sj = 0; sj < SAMPLES; sj++) {
         for (let si = 0; si < SAMPLES; si++) {
-          const x = (i + (si + 0.5) / SAMPLES) / size
-          const y = (j + (sj + 0.5) / SAMPLES) / size
+          const x = ((i + (si + 0.5) / SAMPLES) / size - inset) / (1 - 2 * inset)
+          const y = ((j + (sj + 0.5) / SAMPLES) / size - inset) / (1 - 2 * inset)
           if (insideRoundedRect(x, y, margin)) {
             bg++
             if (onCheck(x, y)) fg++
@@ -52,7 +54,7 @@ function render(size) {
         }
       }
       const n = SAMPLES * SAMPLES
-      const t = j / size
+      const t = Math.min(1, Math.max(0, (j / size - inset) / (1 - 2 * inset)))
       const base = TOP.map((c, k) => c + (BOTTOM[k] - c) * t)
       const mix = fg / Math.max(bg, 1)
       const o = (j * size + i) * 4
@@ -61,6 +63,32 @@ function render(size) {
     }
   }
   return px
+}
+
+function renderTemplate(size) {
+  const px = Buffer.alloc(size * size * 4)
+  const ring = 1.4 / size
+  for (let j = 0; j < size; j++) {
+    for (let i = 0; i < size; i++) {
+      let hit = 0
+      for (let sj = 0; sj < SAMPLES; sj++) {
+        for (let si = 0; si < SAMPLES; si++) {
+          const x = (i + (si + 0.5) / SAMPLES) / size
+          const y = (j + (sj + 0.5) / SAMPLES) / size
+          const outline = insideRoundedRect(x, y, 0.06) && !insideRoundedRect(x, y, 0.06 + ring)
+          if (outline || distToCheck(x, y) <= 1.2 / size) hit++
+        }
+      }
+      px[(j * size + i) * 4 + 3] = Math.round((hit / (SAMPLES * SAMPLES)) * 255)
+    }
+  }
+  return px
+}
+
+function distToCheck(x, y) {
+  let d = Infinity
+  for (let i = 0; i < CHECK.length - 1; i++) d = Math.min(d, distToSegment(x, y, CHECK[i], CHECK[i + 1]))
+  return d
 }
 
 const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
@@ -84,8 +112,8 @@ function chunk(type, data) {
   return Buffer.concat([len, body, crc])
 }
 
-function png(size) {
-  const rgba = render(size)
+function png(size, pixels = render(size)) {
+  const rgba = pixels
   const raw = Buffer.alloc(size * (size * 4 + 1))
   for (let j = 0; j < size; j++) rgba.copy(raw, j * (size * 4 + 1) + 1, j * size * 4, (j + 1) * size * 4)
   const ihdr = Buffer.alloc(13)
@@ -124,4 +152,7 @@ function ico(sizes) {
 mkdirSync(out, { recursive: true })
 writeFileSync(join(out, 'icon.ico'), ico([16, 20, 24, 32, 40, 48, 64, 128, 256]))
 writeFileSync(join(out, 'icon.png'), png(512))
+writeFileSync(join(out, 'icon-mac.png'), png(1024, render(1024, 100 / 1024)))
+writeFileSync(join(out, 'trayTemplate.png'), png(16, renderTemplate(16)))
+writeFileSync(join(out, 'trayTemplate@2x.png'), png(32, renderTemplate(32)))
 console.log('Icone generate in', out)
