@@ -12,13 +12,16 @@ on:
 permissions:
   contents: write
 
+env:
+  APP: dist/mac-arm64/Plainlist.app
+
 jobs:
   build:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -28,30 +31,45 @@ jobs:
       - run: npm run build
       - run: npx electron-builder --mac --arm64 --publish never
 
-      - name: Controlla l'app impacchettata
-        run: |
-          APP="dist/mac-arm64/Plainlist.app"
-          # Firma ad-hoc valida: senza, i Mac Apple Silicon non avviano l'app.
-          codesign --verify --deep --strict --verbose=2 "$APP"
-          # SQLite si carica dal pacchetto (binario darwin-arm64 incluso e non bloccato).
-          ELECTRON_RUN_AS_NODE=1 "$APP/Contents/MacOS/Plainlist" -e \
-            "const D = require(process.argv[1] + '/node_modules/better-sqlite3'); console.log('SQLite', new D(':memory:').prepare('select sqlite_version() as v').get().v)" \
-            "$APP/Contents/Resources/app.asar"
-          # L'app parte e resta aperta.
-          "$APP/Contents/MacOS/Plainlist" &
-          PID=$!
-          sleep 20
-          if ! kill -0 "$PID"; then
-            echo "L'app si è chiusa da sola"
-            exit 1
-          fi
-          echo "App avviata correttamente"
-          kill "$PID"
-
+      # Il .dmg si carica subito, così resta scaricabile anche se un controllo successivo fallisce.
       - uses: actions/upload-artifact@v4
         with:
           name: Plainlist-mac
           path: dist/*.dmg
+
+      # Ogni controllo è un passo a sé. In caso di errore l'output finisce in un'annotazione,
+      # visibile a tutti (i log completi li vede solo chi amministra il repository).
+      - name: Controllo della firma
+        run: |
+          if ! codesign --verify --deep --strict --verbose=2 "$APP" > check.log 2>&1; then
+            echo "::error title=Firma::$(tr '\n' ' ' < check.log | tail -c 1800)"
+            exit 1
+          fi
+          codesign -dv "$APP" 2>&1 | grep -E "Signature|Identifier"
+
+      - name: Controllo di SQLite nel pacchetto
+        if: always()
+        run: |
+          if ! ELECTRON_RUN_AS_NODE=1 "$APP/Contents/MacOS/Plainlist" -e \
+            "const D = require(process.argv[1] + '/node_modules/better-sqlite3'); console.log('SQLite', new D(':memory:').prepare('select sqlite_version() as v').get().v)" \
+            "$APP/Contents/Resources/app.asar" > check.log 2>&1; then
+            echo "::error title=SQLite::$(tr '\n' ' ' < check.log | tail -c 1800)"
+            exit 1
+          fi
+          cat check.log
+
+      - name: Controllo dell'avvio
+        if: always()
+        run: |
+          "$APP/Contents/MacOS/Plainlist" > app.log 2>&1 &
+          PID=$!
+          sleep 20
+          if ! kill -0 "$PID" 2> /dev/null; then
+            echo "::error title=Avvio::L'app si è chiusa da sola. $(tr '\n' ' ' < app.log | tail -c 1700)"
+            exit 1
+          fi
+          echo "App avviata correttamente"
+          kill "$PID"
 
       - name: Allega alla release
         if: startsWith(github.ref, 'refs/tags/v')
